@@ -224,21 +224,19 @@ func flselect(l *Flayer) bool {
 	if l.visible != All {
 		flupfront(l)
 	}
-	l.f.Select(mousectl)
-	ret := false
 	if l.f.P0 == l.f.P1 {
-		if mousep.Msec-l.click < Clicktime && l.f.P0+l.origin == l.p0 {
-			ret = true
+		if mousep.Msec-l.click < Clicktime && l.f.P0+l.origin == l.p0 && l.f.P0 == l.f.CharOf(mousep.Point) {
 			l.click = 0
-		} else {
-			l.click = mousep.Msec
+			return true
 		}
-	} else {
-		l.click = 0
 	}
+
+	l.click = mousep.Msec
+	l.f.Select(mousectl)
+
 	l.p0 = l.f.P0 + l.origin
 	l.p1 = l.f.P1 + l.origin
-	return ret
+	return false
 }
 
 func flsetselect(l *Flayer, p0 int, p1 int) {

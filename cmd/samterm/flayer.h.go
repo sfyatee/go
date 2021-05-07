@@ -15,7 +15,7 @@ const (
 )
 
 const (
-	Clicktime = 1000
+	Clicktime = 500
 ) /* one second */
 
 type Flayer struct {

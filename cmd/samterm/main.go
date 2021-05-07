@@ -31,8 +31,6 @@ var (
 	textByID    map[int64]*Text
 )
 
-const chording = false /* code here for reference but it causes deadlocks */
-
 func main() {
 	/*
 	 * sam is talking to us on fd 0 and 1.
@@ -117,11 +115,23 @@ func main() {
 			if mousep.Buttons != 0 {
 				flushtyping(true)
 			}
-			if chording && chord == 1 && mousep.Buttons == 0 {
+			if mousep.Buttons&1 == 0 {
 				chord = 0
 			}
-			if chording && chord != 0 {
+			if chord != 0 && which != nil && which == nwhich {
 				chord |= mousep.Buttons
+				t := which.text
+				if t.lock == 0 && hostlock == 0 {
+					w := t.find(which)
+					if chord&2 != 0 {
+						cut(t, w, true, true)
+						chord &= ^2
+					}
+					if chord&4 != 0 {
+						paste(t, w)
+						chord &= ^4
+					}
+				}
 			} else if mousep.Buttons&(1|8) != 0 {
 				if nwhich != nil {
 					if nwhich != which {
@@ -163,19 +173,6 @@ func main() {
 				}
 			}
 			mouseunblock()
-		}
-		if chording && chord != 0 {
-			t := which.text
-			if t.lock == 0 && hostlock == 0 {
-				w := t.find(which)
-				if chord&2 != 0 {
-					cut(t, w, true, true)
-					chord &= ^2
-				} else if chord&4 != 0 {
-					paste(t, w)
-					chord &= ^4
-				}
-			}
 		}
 	}
 }
