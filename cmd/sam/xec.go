@@ -261,6 +261,7 @@ func u_cmd(f *File, cp *Cmd) bool {
 			}
 		}
 	}
+	moveto(f, f.dot.r)
 	return true
 }
 
