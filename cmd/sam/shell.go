@@ -14,6 +14,8 @@ import (
 var errfile string
 var plan9cmd String /* null terminated */
 var plan9buf Buffer
+var cmdbuf Buffer
+var cmdbufpos int
 
 func setname(ecmd *exec.Cmd, f *File) {
 	var buf string
@@ -36,7 +38,7 @@ func plan9(f *File, type_ rune, s *String, nest bool) int {
 			error_(Epipe)
 		}
 	*/
-	if type_ == '|' {
+	if type_ == '|' || type_ == '_' {
 		snarf(f, addr.r.p1, addr.r.p2, &plan9buf, 1)
 	}
 
@@ -62,7 +64,7 @@ func plan9(f *File, type_ rune, s *String, nest bool) int {
 	}
 
 	var stdout IOFile
-	if type_ == '<' || type_ == '|' {
+	if type_ == '<' || type_ == '|' || type_ == '_' || type_ == '^' {
 		ecmd.Stdout = nil
 		p, err := ecmd.StdoutPipe()
 		if err != nil {
@@ -72,7 +74,7 @@ func plan9(f *File, type_ rune, s *String, nest bool) int {
 	}
 
 	var stdin IOFile
-	if type_ == '>' || type_ == '|' {
+	if type_ == '>' || type_ == '|' || type_ == '_' {
 		ecmd.Stdin = nil
 		p, err := ecmd.StdinPipe()
 		if err != nil {
@@ -81,7 +83,7 @@ func plan9(f *File, type_ rune, s *String, nest bool) int {
 		stdin = p.(IOFile)
 	}
 
-	if type_ == '|' {
+	if type_ == '|' || type_ == '_' {
 		go func() {
 			defer func() {
 				stdin.Close()
@@ -131,12 +133,15 @@ func plan9(f *File, type_ rune, s *String, nest bool) int {
 		writeio(f)
 		bpipeok = false
 		closeio(-1)
+	case '^', '_':
+		var nulls bool
+		bufload(&cmdbuf, cmdbufpos, stdout, &nulls)
 	}
 
 	if xerr == nil {
 		xerr = ecmd.Wait()
 	}
-	if type_ == '|' || type_ == '<' {
+	if type_ == '|' || type_ == '<' || type_ == '_' || type_ == '^' {
 		if xerr != nil {
 			warn(Wbadstatus)
 		}

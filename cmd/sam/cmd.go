@@ -49,6 +49,8 @@ var cmdtab1 = []Cmdtab{
 	{'>', false, false, false, 0, aDot, 0, linex, plan9_cmd},
 	{'<', false, false, false, 0, aDot, 0, linex, plan9_cmd},
 	{'|', false, false, false, 0, aDot, 0, linex, plan9_cmd},
+	{'^', false, false, false, 0, aNo, 0, linex, plan9_cmd},
+	{'_', false, false, false, 0, aDot, 0, linex, plan9_cmd},
 	{'=', false, false, false, 0, aDot, 0, linex, eq_cmd},
 	{'c' | 0x100, false, false, false, 0, aNo, 0, wordx, cd_cmd},
 }
@@ -79,7 +81,16 @@ func inputc() rune {
 Again:
 	nbuf := 0
 	var r rune
-	if downloaded {
+	if cmdbufpos > cmdbuf.nc && cmdbuf.nc > 0 {
+		cmdbufpos = 0
+		bufreset(&cmdbuf)
+	}
+	if cmdbufpos < cmdbuf.nc && cmdbuf.nc > 0 {
+		var rs [1]rune
+		bufread(&cmdbuf, cmdbufpos, rs[:])
+		cmdbufpos++
+		r = rs[0]
+	} else if downloaded {
 		for termoutp == terminp {
 			cmdupdate()
 			if patset {

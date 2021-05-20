@@ -18,7 +18,7 @@ func cmdexec(f *File, cp *Cmd) bool {
 	if f != nil && f.unread {
 		load(f)
 	}
-	if f == nil && (cp.addr == nil || cp.addr.type_ != '"') && !strings.ContainsRune("bBnqUXY!", cp.cmdc) && cp.cmdc != 'c'|0x100 && (cp.cmdc != 'D' || cp.ctext == nil) {
+	if f == nil && (cp.addr == nil || cp.addr.type_ != '"') && !strings.ContainsRune("bBnqUXY!^", cp.cmdc) && cp.cmdc != 'c'|0x100 && (cp.cmdc != 'D' || cp.ctext == nil) {
 		error_(Enofile)
 	}
 	i := lookup(cp.cmdc)
