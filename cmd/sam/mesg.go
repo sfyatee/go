@@ -461,10 +461,14 @@ func inmesg(type_ Tmesg) bool {
 		telldot(cmd)
 		termcommand()
 
-	case Tdclick:
+	case Tdclick, Ttclick:
 		f = whichfile(inshort())
 		p1 = inlong()
-		doubleclick(f, p1)
+		if type_ == Tdclick {
+			stretchsel(f, p1, 0)
+		} else {
+			stretchsel(f, p1, 1)
+		}
 		f.tdot.p2 = p1
 		f.tdot.p1 = f.tdot.p2
 		telldot(f)

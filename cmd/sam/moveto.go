@@ -2,7 +2,10 @@
 
 package main
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+)
 
 func moveto(f *File, r Range) {
 	p1 := r.p1
@@ -64,7 +67,7 @@ func lookorigin(f *File, p0 Posn, ls Posn) {
 	outTsl(Horigin, f.tag, p0)
 }
 
-func alnum(c rune) bool {
+func isalnum(c rune) bool {
 	/*
 	 * Hard to get absolutely right.  Use what we know about ASCII
 	 * and assume anything above the Latin control characters is
@@ -80,6 +83,13 @@ func alnum(c rune) bool {
 		return false
 	}
 	return true
+}
+
+func inmode(r rune, mode int) bool {
+	if mode == 0 {
+		return isalnum(r)
+	}
+	return r > 0 && !unicode.IsSpace(r)
 }
 
 func clickmatch(f *File, cl, cr rune, dir int, p *Posn) bool {
@@ -121,7 +131,7 @@ func indexRune(s []rune, c rune) int {
 	return -1
 }
 
-func doubleclick(f *File, p1 Posn) {
+func stretchsel(f *File, p1 Posn, mode int) {
 	if p1 > f.b.nc {
 		return
 	}
@@ -174,7 +184,7 @@ func doubleclick(f *File, p1 Posn) {
 	p = p1
 	for p < f.b.nc {
 		p++
-		if !alnum(filereadc(f, p-1)) {
+		if !inmode(filereadc(f, p-1), mode) {
 			break
 		}
 		f.dot.r.p2++
@@ -183,7 +193,7 @@ func doubleclick(f *File, p1 Posn) {
 	p = p1
 	for {
 		p--
-		if p < 0 || !alnum(filereadc(f, p)) {
+		if p < 0 || !inmode(filereadc(f, p), mode) {
 			break
 		}
 		f.dot.r.p1--

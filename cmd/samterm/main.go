@@ -144,8 +144,13 @@ func main() {
 						}
 					} else {
 						t := which.text
-						if flselect(which) {
-							outTsl(Tdclick, t.tag, which.p0)
+						nclick := flselect(which)
+						if nclick > 0 {
+							if nclick > 1 {
+								outTsl(Ttclick, t.tag, which.p0)
+							} else {
+								outTsl(Tdclick, t.tag, which.p0)
+							}
 							t.lock++
 						} else if t != &cmd {
 							outcmd()

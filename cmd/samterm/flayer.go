@@ -220,27 +220,35 @@ func fldelete(l *Flayer, p0 int, p1 int) {
 	}
 }
 
-func flselect(l *Flayer) bool {
+var clickcount = 0
+var clickpt = draw.Point{-10, -10}
+
+func flselect(l *Flayer) int {
 	if l.visible != All {
 		flupfront(l)
 	}
-	if l.f.P0 == l.f.P1 {
-		if mousep.Msec-l.click < Clicktime && l.f.P0+l.origin == l.p0 && l.f.P0 == l.f.CharOf(mousep.Point) {
-			l.click = 0
-			return true
-		}
-	}
+
+	dt := mousep.Msec - l.click
+	dx := abs(mousep.X - clickpt.X)
+	dy := abs(mousep.Y - clickpt.Y)
 
 	l.click = mousep.Msec
+	clickpt = mousep.Point
+
+	if dx < 3 && dy < 3 && dt < Clicktime && clickcount < 3 {
+		clickcount++
+		return clickcount
+	}
+	clickcount = 0
+
 	l.f.Select(mousectl)
 
 	l.p0 = l.f.P0 + l.origin
 	l.p1 = l.f.P1 + l.origin
-	return false
+	return 0
 }
 
 func flsetselect(l *Flayer, p0 int, p1 int) {
-	l.click = 0
 	if l.visible == None || !flprepare(l) {
 		l.p0 = p0
 		l.p1 = p1
