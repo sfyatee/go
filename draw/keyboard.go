@@ -22,7 +22,14 @@ const (
 	KeyBackspace = 0x08
 	KeyDelete    = 0x7F
 	KeyEscape    = 0x1b
+	KeySoh       = 0x01
+	KeyStx       = 0x02
+	KeyEtx       = 0x03
 	KeyEOF       = 0x04
+	KeyEnq       = 0x05
+	KeyAck       = 0x06
+	KeyNack      = 0x15
+	KeyEtb       = 0x17
 	KeyCmd       = 0xF100
 )
 

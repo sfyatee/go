@@ -477,37 +477,27 @@ func flushtyping(clearesc bool) {
 }
 
 const (
-	BACKSCROLLKEY = draw.KeyUp
-	ENDKEY        = draw.KeyEnd
-	ESC           = '\x1B'
-	HOMEKEY       = draw.KeyHome
-	LEFTARROW     = draw.KeyLeft
-	LINEEND       = '\x05'
-	LINESTART     = '\x01'
-	PAGEDOWN      = draw.KeyPageDown
-	PAGEUP        = draw.KeyPageUp
-	RIGHTARROW    = draw.KeyRight
-	SCROLLKEY     = draw.KeyDown
-	CUT           = draw.KeyCmd + 'x'
-	COPY          = draw.KeyCmd + 'c'
-	PASTE         = draw.KeyCmd + 'v'
+	keyCut   = 0x18
+	keyCopy  = draw.KeyEtx
+	keyPaste = 0x16
 )
 
 func nontypingkey(c rune) bool {
 	switch c {
-	case BACKSCROLLKEY,
-		ENDKEY,
-		HOMEKEY,
-		LEFTARROW,
-		LINEEND,
-		LINESTART,
-		PAGEDOWN,
-		PAGEUP,
-		RIGHTARROW,
-		SCROLLKEY,
-		CUT,
-		COPY,
-		PASTE:
+	case draw.KeyUp,
+		draw.KeyEnd,
+		draw.KeyHome,
+		draw.KeyLeft,
+		draw.KeyEnq,
+		draw.KeySoh,
+		draw.KeyStx,
+		draw.KeyPageDown,
+		draw.KeyPageUp,
+		draw.KeyRight,
+		draw.KeyDown,
+		keyCut,
+		keyCopy,
+		keyPaste:
 		return true
 	}
 	return false
@@ -541,11 +531,11 @@ func ktype(l *Flayer, res Resource) {
 			break
 		}
 		if res == RKeyboard {
-			if nontypingkey(c) || c == ESC {
+			if nontypingkey(c) || c == draw.KeyEscape {
 				break
 			}
 			/* backspace, ctrl-u, ctrl-w, del */
-			if c == '\b' || c == 0x15 || c == 0x17 || c == 0x7F {
+			if c == draw.KeyBackspace || c == draw.KeyNack || c == draw.KeyEtb || c == draw.KeyDelete {
 				backspacing = 1
 				break
 			}
@@ -588,17 +578,17 @@ func ktype(l *Flayer, res Resource) {
 		}
 		onethird(l, a)
 	}
-	if c == SCROLLKEY || c == PAGEDOWN {
+	if c == draw.KeyDown || c == draw.KeyPageDown {
 		flushtyping(false)
 		center(l, l.origin+l.f.NumChars+1)
-	} else if c == BACKSCROLLKEY || c == PAGEUP {
+	} else if c == draw.KeyUp || c == draw.KeyPageUp {
 		flushtyping(false)
 		a0 := l.origin - l.f.NumChars
 		if a0 < 0 {
 			a0 = 0
 		}
 		center(l, a0)
-	} else if c == RIGHTARROW {
+	} else if c == draw.KeyRight {
 		flushtyping(false)
 		a0 := l.p0
 		if a0 < t.rasp.nrunes {
@@ -606,7 +596,7 @@ func ktype(l *Flayer, res Resource) {
 		}
 		flsetselect(l, a0, a0)
 		center(l, a0)
-	} else if c == LEFTARROW {
+	} else if c == draw.KeyLeft {
 		flushtyping(false)
 		a0 := l.p0
 		if a0 > 0 {
@@ -614,15 +604,15 @@ func ktype(l *Flayer, res Resource) {
 		}
 		flsetselect(l, a0, a0)
 		center(l, a0)
-	} else if c == HOMEKEY {
+	} else if c == draw.KeyHome {
 		flushtyping(false)
 		center(l, 0)
-	} else if c == ENDKEY {
+	} else if c == draw.KeyEnd {
 		flushtyping(false)
 		center(l, t.rasp.nrunes)
-	} else if c == LINESTART || c == LINEEND {
+	} else if c == draw.KeySoh || c == draw.KeyEnq {
 		flushtyping(true)
-		if c == LINESTART {
+		if c == draw.KeySoh {
 			for a > 0 && raspc(&t.rasp, a-1) != '\n' {
 				a--
 			}
@@ -643,12 +633,11 @@ func ktype(l *Flayer, res Resource) {
 		/* backspacing immediately after outcmd(): sorry */
 		if l.f.P0 > 0 && a > 0 {
 			switch c {
-			case '\b',
-				0x7F: /* del */
+			case draw.KeyBackspace, draw.KeyDelete: /* del */
 				l.p0 = a - 1
-			case 0x15: /* ctrl-u */
+			case draw.KeyNack: /* ctrl-u */
 				l.p0 = ctlu(&t.rasp, l.origin, a)
-			case 0x17: /* ctrl-w */
+			case draw.KeyEtb: /* ctrl-w */
 				l.p0 = ctlw(&t.rasp, l.origin, a)
 			}
 			l.p1 = a
@@ -679,8 +668,21 @@ func ktype(l *Flayer, res Resource) {
 				}
 			}
 		}
+	} else if c == draw.KeyStx {
+		t = &cmd
+		for i := range t.l {
+			l = &t.l[i]
+			if t.l[i].textfn != nil {
+				break
+			}
+		}
+		current(l)
+		flushtyping(false)
+		a := t.rasp.nrunes
+		flsetselect(l, a, a)
+		center(l, a)
 	} else {
-		if c == ESC && typeesc >= 0 {
+		if c == draw.KeyEscape && typeesc >= 0 {
 			l.p0 = typeesc
 			l.p1 = a
 			flushtyping(true)
@@ -692,13 +694,13 @@ func ktype(l *Flayer, res Resource) {
 			}
 		}
 		switch c {
-		case CUT:
+		case keyCut:
 			flushtyping(false)
 			cut(t, t.front, true, true)
-		case COPY:
+		case keyCopy:
 			flushtyping(false)
 			snarf(t, t.front)
-		case PASTE:
+		case keyPaste:
 			flushtyping(false)
 			paste(t, t.front)
 		}
