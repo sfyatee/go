@@ -491,6 +491,7 @@ func nontypingkey(c rune) bool {
 		draw.KeyEnq,
 		draw.KeySoh,
 		draw.KeyStx,
+		draw.KeyBell,
 		draw.KeyPageDown,
 		draw.KeyPageUp,
 		draw.KeyRight,
@@ -681,6 +682,31 @@ func ktype(l *Flayer, res Resource) {
 		a := t.rasp.nrunes
 		flsetselect(l, a, a)
 		center(l, a)
+	} else if c == draw.KeyBell {
+		if work == nil {
+			return
+		}
+		if which != work {
+			current(work)
+			return
+		}
+		t = work.text
+		l = &t.l[t.front]
+		i := t.front
+		for {
+			if t.nwin < 1 {
+				break
+			}
+			i = (i + 1) % NL
+			if i == t.front {
+				break
+			}
+			if t.l[i].textfn != nil {
+				l = &t.l[i]
+				break
+			}
+		}
+		current(l)
 	} else {
 		if c == draw.KeyEscape && typeesc >= 0 {
 			l.p0 = typeesc

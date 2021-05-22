@@ -28,6 +28,7 @@ const (
 	KeyEOF       = 0x04
 	KeyEnq       = 0x05
 	KeyAck       = 0x06
+	KeyBell      = 0x07
 	KeyNack      = 0x15
 	KeyEtb       = 0x17
 	KeyCmd       = 0xF100
