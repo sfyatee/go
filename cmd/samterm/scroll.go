@@ -102,6 +102,9 @@ func abs(x int) int {
 }
 
 func scroll(l *Flayer, but int) {
+	if l.visible == None {
+		return
+	}
 	in := false
 	tot := scrtotal(l)
 	s := l.scroll
