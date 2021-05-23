@@ -49,6 +49,7 @@ var rsamname string = RSAM
 var lastfile *File
 var disk *Disk
 var seq int
+var remote9 bool
 
 var winsize string
 
@@ -63,6 +64,7 @@ func main() {
 	flag.BoolVar(&Dflag, "D", Dflag, "-D") // debug
 	flag.BoolVar(&dflag, "d", dflag, "-d")
 	flag.BoolVar(&Rflag, "R", Rflag, "-R")
+	flag.BoolVar(&remote9, "9", remote9, "-9")
 	flag.StringVar(&machine, "r", machine, "-r")
 	flag.StringVar(&samterm, "t", samterm, "-t")
 	flag.StringVar(&rsamname, "s", rsamname, "-s")

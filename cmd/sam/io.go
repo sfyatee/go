@@ -212,7 +212,12 @@ func bootterm(machine string, argv []string) {
 }
 
 func connectto(machine string, files []string) {
-	av := append([]string{RX, machine, rsamname, "-R"}, files...)
+	var av []string
+	if remote9 {
+		av = append([]string{"tlsclient", "-R", rsamname, "-R"}, files...)
+	} else {
+		av = append([]string{RX, machine, rsamname, "-R"}, files...)
+	}
 	cmd := exec.Command(av[0], av[1:]...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
