@@ -40,6 +40,7 @@ var quitok bool = true
 var downloaded bool
 var dflag bool
 var Rflag bool
+var Fflag bool
 var machine string
 var home string
 var bpipeok bool
@@ -65,6 +66,7 @@ func main() {
 	flag.BoolVar(&dflag, "d", dflag, "-d")
 	flag.BoolVar(&Rflag, "R", Rflag, "-R")
 	flag.BoolVar(&remote9, "9", remote9, "-9")
+	flag.BoolVar(&Fflag, "F", Fflag, "-F")
 	flag.StringVar(&machine, "r", machine, "-r")
 	flag.StringVar(&samterm, "t", samterm, "-t")
 	flag.StringVar(&rsamname, "s", rsamname, "-s")

@@ -40,7 +40,7 @@ var cmdtab1 = []Cmdtab{
 	{'t', false, false, true, 0, aDot, 0, "", m_cmd},
 	{'u', false, false, false, 0, aNo, 2, "", u_cmd},
 	{'v', false, true, false, 'p', aDot, 0, "", g_cmd},
-	{'w', false, false, false, 0, aAll, 0, wordx, w_cmd},
+	{'w', false, false, false, 0, aDot, 0, wordx, w_cmd},
 	{'x', false, true, false, 'p', aDot, 0, "", x_cmd},
 	{'y', false, true, false, 'p', aDot, 0, "", x_cmd},
 	{'X', false, true, false, 'f', aNo, 0, "", X_cmd},

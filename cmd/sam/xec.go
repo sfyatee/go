@@ -266,6 +266,7 @@ func u_cmd(f *File, cp *Cmd) bool {
 }
 
 func w_cmd(f *File, cp *Cmd) bool {
+	gofmt := Fflag && strings.HasSuffix(f.name.String(), ".go")
 	fseq := f.seq
 	if getname(f, cp.ctext, false) == 0 {
 		error_(Enoname)
@@ -273,7 +274,21 @@ func w_cmd(f *File, cp *Cmd) bool {
 	if fseq == seq {
 		error_s(Ewseq, genc)
 	}
+	d := addr.r
+	addr.r.p1 = 0
+	addr.r.p2 = f.b.nc
+	if gofmt {
+		plan9(f, '|', &String{[]rune("goimports")}, false)
+		cmdupdate()
+		update()
+	}
+	addr.r.p1 = 0
+	addr.r.p2 = f.b.nc
 	writef(f)
+	if gofmt {
+		f.dot.r = d
+		moveto(f, f.dot.r)
+	}
 	return true
 }
 
