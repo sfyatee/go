@@ -8,7 +8,6 @@ import (
 )
 
 var llist []*Flayer /* front to back */
-var nlalloc int
 var lDrect image.Rectangle
 
 var maincols [frame.NCOL]*draw.Image
