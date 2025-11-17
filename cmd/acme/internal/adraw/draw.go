@@ -33,7 +33,7 @@ func Init() {
 		// Yellow
 		TextCols[frame.BACK] = Display.AllocImageMix(draw.PaleYellow, draw.White)
 		TextCols[frame.HIGH], _ = Display.AllocImage(draw.Rect(0, 0, 1, 1), Display.ScreenImage.Pix, true, 0x72DEC2FF)
- 		/* Halftone */
+		/* Halftone */
 		TextCols[frame.BORD], _ = Display.AllocImage(draw.Rect(0, 0, 2, 2), draw.CMAP8, true, 0x000000FF)
 		TextCols[frame.BORD].Draw(draw.Rect(1, 1, 2, 2), Display.White, nil, draw.ZP)
 		TextCols[frame.BORD].Draw(draw.Rect(0, 0, 1, 1), Display.White, nil, draw.ZP)
@@ -58,18 +58,18 @@ func Init() {
 	Button.Border(r, ButtonBorder(), TagCols[frame.BORD], draw.ZP)
 
 	// Mod Button
- 	r = Button.R
- 	ModButton, _ = Display.AllocImage(r, Display.ScreenImage.Pix, false, draw.NoFill)
- 	ModButton.Draw(r, TagCols[frame.BACK], nil, r.Min)
+	r = Button.R
+	ModButton, _ = Display.AllocImage(r, Display.ScreenImage.Pix, false, draw.NoFill)
+	ModButton.Draw(r, TagCols[frame.BACK], nil, r.Min)
 	r.Max.X -= ButtonBorder()
 	ModButton.Border(r, ButtonBorder(), TagCols[frame.BORD], draw.ZP)
- 	r = r.Inset(ButtonBorder())
-	tmp, _ := Display.AllocImage(draw.Rect(0, 0, 1, 1), Display.ScreenImage.Pix, true, draw.Black)
+	r = r.Inset(ButtonBorder())
+	tmp, _ := Display.AllocImage(draw.Rect(0, 0, 1, 1), Display.ScreenImage.Pix, true, 0xEEEEEEFF)
 	ModButton.Draw(r, tmp, nil, draw.ZP)
 	tmp.Free()
- 
+
 	r = Button.R
-	ColButton, _ = Display.AllocImage(draw.Rect(0,0,1,1), Display.ScreenImage.Pix, true, 0x72DEC2FF)
+	ColButton, _ = Display.AllocImage(draw.Rect(0, 0, 1, 1), Display.ScreenImage.Pix, true, 0x72DEC2FF)
 
 	Button2Color, _ = Display.AllocImage(r, Display.ScreenImage.Pix, true, 0x000000FF)
 	Button3Color, _ = Display.AllocImage(r, Display.ScreenImage.Pix, true, 0x72DEC2FF)
