@@ -24,16 +24,19 @@ var Button3Color *draw.Image
 func Init() {
 	if TagCols[frame.BACK] == nil {
 		// Blue
-		TagCols[frame.BACK] = Display.AllocImageMix(draw.PaleBlueGreen, draw.White)
-		TagCols[frame.HIGH], _ = Display.AllocImage(draw.Rect(0, 0, 1, 1), Display.ScreenImage.Pix, true, draw.PaleGreyGreen)
-		TagCols[frame.BORD], _ = Display.AllocImage(draw.Rect(0, 0, 1, 1), Display.ScreenImage.Pix, true, draw.PurpleBlue)
+		TagCols[frame.BACK] = Display.White
+		TagCols[frame.HIGH], _ = Display.AllocImage(draw.Rect(0, 0, 1, 1), Display.ScreenImage.Pix, true, 0x72DEC2FF)
+		TagCols[frame.BORD], _ = Display.AllocImage(draw.Rect(0, 0, 1, 1), Display.ScreenImage.Pix, true, 0x72DEC2FF)
 		TagCols[frame.TEXT] = Display.Black
-		TagCols[frame.HTEXT] = Display.Black
+		TagCols[frame.HTEXT] = Display.White
 
 		// Yellow
 		TextCols[frame.BACK] = Display.AllocImageMix(draw.PaleYellow, draw.White)
-		TextCols[frame.HIGH], _ = Display.AllocImage(draw.Rect(0, 0, 1, 1), Display.ScreenImage.Pix, true, draw.DarkYellow)
-		TextCols[frame.BORD], _ = Display.AllocImage(draw.Rect(0, 0, 1, 1), Display.ScreenImage.Pix, true, draw.YellowGreen)
+		TextCols[frame.HIGH], _ = Display.AllocImage(draw.Rect(0, 0, 1, 1), Display.ScreenImage.Pix, true, 0x72DEC2FF)
+ 		/* Halftone */
+		TextCols[frame.BORD], _ = Display.AllocImage(draw.Rect(0, 0, 2, 2), draw.CMAP8, true, 0x000000FF)
+		TextCols[frame.BORD].Draw(draw.Rect(1, 1, 2, 2), Display.White, nil, draw.ZP)
+		TextCols[frame.BORD].Draw(draw.Rect(0, 0, 1, 1), Display.White, nil, draw.ZP)
 		TextCols[frame.TEXT] = Display.Black
 		TextCols[frame.HTEXT] = Display.Black
 	}
@@ -48,27 +51,28 @@ func Init() {
 		ModButton.Free()
 		ColButton.Free()
 	}
-
+	/// Button
 	Button, _ = Display.AllocImage(r, Display.ScreenImage.Pix, false, draw.NoFill)
 	Button.Draw(r, TagCols[frame.BACK], nil, r.Min)
 	r.Max.X -= ButtonBorder()
 	Button.Border(r, ButtonBorder(), TagCols[frame.BORD], draw.ZP)
 
-	r = Button.R
-	ModButton, _ = Display.AllocImage(r, Display.ScreenImage.Pix, false, draw.NoFill)
-	ModButton.Draw(r, TagCols[frame.BACK], nil, r.Min)
+	// Mod Button
+ 	r = Button.R
+ 	ModButton, _ = Display.AllocImage(r, Display.ScreenImage.Pix, false, draw.NoFill)
+ 	ModButton.Draw(r, TagCols[frame.BACK], nil, r.Min)
 	r.Max.X -= ButtonBorder()
 	ModButton.Border(r, ButtonBorder(), TagCols[frame.BORD], draw.ZP)
-	r = r.Inset(ButtonBorder())
-	tmp, _ := Display.AllocImage(draw.Rect(0, 0, 1, 1), Display.ScreenImage.Pix, true, draw.MedBlue)
+ 	r = r.Inset(ButtonBorder())
+	tmp, _ := Display.AllocImage(draw.Rect(0, 0, 1, 1), Display.ScreenImage.Pix, true, draw.Black)
 	ModButton.Draw(r, tmp, nil, draw.ZP)
 	tmp.Free()
-
+ 
 	r = Button.R
-	ColButton, _ = Display.AllocImage(r, Display.ScreenImage.Pix, false, draw.PurpleBlue)
+	ColButton, _ = Display.AllocImage(draw.Rect(0,0,1,1), Display.ScreenImage.Pix, true, 0x72DEC2FF)
 
-	Button2Color, _ = Display.AllocImage(r, Display.ScreenImage.Pix, true, 0xAA0000FF)
-	Button3Color, _ = Display.AllocImage(r, Display.ScreenImage.Pix, true, 0x006600FF)
+	Button2Color, _ = Display.AllocImage(r, Display.ScreenImage.Pix, true, 0x000000FF)
+	Button3Color, _ = Display.AllocImage(r, Display.ScreenImage.Pix, true, 0x72DEC2FF)
 }
 
 var BoxCursor = draw.Cursor{

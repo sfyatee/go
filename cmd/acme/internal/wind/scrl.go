@@ -75,7 +75,8 @@ func Textscrdraw(t *Text) {
 	if !(r2 == t.lastsr) {
 		t.lastsr = r2
 		b.Draw(r1, t.Fr.Cols[frame.BORD], nil, draw.ZP)
-		b.Draw(r2, t.Fr.Cols[frame.BACK], nil, draw.ZP)
+		r2.Max.X = r2.Max.X + 1
+		b.Draw(r2, t.Fr.Cols[frame.TEXT], nil, draw.ZP)
 		r2.Min.X = r2.Max.X - 1
 		b.Draw(r2, t.Fr.Cols[frame.BORD], nil, draw.ZP)
 		t.Fr.B.Draw(r, b, nil, draw.Pt(0, r1.Min.Y))
