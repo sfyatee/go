@@ -36,6 +36,7 @@ type Fcall struct {
 	Count   uint32   // Tread, Rwrite
 	Data    []byte   // Twrite, Rread
 	Stat    []byte   // Twstat, Rstat
+	Unixfd  uint32   // Ropenfd
 
 	// 9P2000.u extensions
 	Errno     uint32 // Rerror
@@ -73,6 +74,10 @@ const (
 	Twstat
 	Rwstat
 	Tmax
+)
+const (
+	Topenfd = 98 + iota
+	Ropenfd
 )
 
 func (f *Fcall) Bytes() ([]byte, error) {
@@ -112,7 +117,7 @@ func (f *Fcall) Bytes() ([]byte, error) {
 			b = pstring(b, f.Wname[i])
 		}
 
-	case Topen:
+	case Topen, Topenfd:
 		b = pbit32(b, f.Fid)
 		b = pbit8(b, f.Mode)
 
@@ -169,6 +174,11 @@ func (f *Fcall) Bytes() ([]byte, error) {
 	case Ropen, Rcreate:
 		b = pqid(b, f.Qid)
 		b = pbit32(b, f.Iounit)
+
+	case Ropenfd:
+		b = pqid(b, f.Qid)
+		b = pbit32(b, f.Iounit)
+		b = pbit32(b, f.Unixfd)
 
 	case Rread:
 		b = pbit32(b, uint32(len(f.Data)))
@@ -239,7 +249,7 @@ func UnmarshalFcall(b []byte) (f *Fcall, err error) {
 			f.Wname[i], b = gstring(b)
 		}
 
-	case Topen:
+	case Topen, Topenfd:
 		f.Fid, b = gbit32(b)
 		f.Mode, b = gbit8(b)
 
@@ -310,6 +320,11 @@ func UnmarshalFcall(b []byte) (f *Fcall, err error) {
 		f.Qid, b = gqid(b)
 		f.Iounit, b = gbit32(b)
 
+	case Ropenfd:
+		f.Qid, b = gqid(b)
+		f.Iounit, b = gbit32(b)
+		f.Unixfd, b = gbit32(b)
+
 	case Rread:
 		n, b = gbit32(b)
 		if len(b) != int(n) {
@@ -374,6 +389,10 @@ func (f *Fcall) String() string {
 		return fmt.Sprintf("Topen tag %d fid %d mode %d", f.Tag, f.Fid, f.Mode)
 	case Ropen:
 		return fmt.Sprintf("Ropen tag %d qid %v iounit %d", f.Tag, f.Qid, f.Iounit)
+	case Topenfd:
+		return fmt.Sprintf("Topenfd tag %v fid %v mode %o", f.Tag, f.Fid, f.Mode)
+	case Ropenfd:
+		return fmt.Sprintf("Ropenfd tag %v qid %v iounit %v unixfd %v", f.Tag, f.Qid, f.Iounit, f.Unixfd)
 	case Tcreate:
 		return fmt.Sprintf("Tcreate tag %d fid %d name %s perm %v mode %d",
 			f.Tag, f.Fid, f.Name, f.Perm, f.Mode)
