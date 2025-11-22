@@ -41,8 +41,8 @@ func post9pservice(rfd, wfd *os.File, name, mtpt string) error {
 			}
 		}()
 		if mtpt != "" {
- 			// reopen
- 			log.Fatalf("post9pservice mount not implemented")
+			// reopen
+			log.Fatalf("post9pservice mount not implemented")
 		}
 	}
 	if mtpt != "" {
