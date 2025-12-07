@@ -77,7 +77,7 @@ func button(but int) int {
 }
 
 func externload(cmd string) {
-	// TODO(rsc): drawtopwindow()
+	display.Top()
 	externcmd = []rune(cmd)
 	got |= 1 << RPlumb
 }
