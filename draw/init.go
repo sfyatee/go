@@ -443,14 +443,25 @@ func (d *Display) Scale(n int) int {
 
 func atoi(b []byte) int {
 	i := 0
+
 	for i < len(b) && b[i] == ' ' {
 		i++
 	}
+
+	sign := 1
+	if i < len(b) && (b[i] == '-' || b[i] == '+') {
+		if b[i] == '-' {
+			sign = -1
+		}
+		i++
+	}
+
 	n := 0
 	for ; i < len(b) && '0' <= b[i] && b[i] <= '9'; i++ {
-		n = n*10 + int(b[i]) - '0'
+		n = n*10 + int(b[i]-'0')
 	}
-	return n
+
+	return sign * n
 }
 
 func atop(b []byte) Point {
