@@ -242,6 +242,12 @@ type font struct {
 	srv srv9p.Server
 }
 
+func (srv *font) Attach(ctx context.Context, fid, afid *srv9p.Fid, user, aname string) (plan9.Qid, error) {
+	q := dostat(qpath(Qroot, 0, 0, 0, 0), nil)
+	fid.SetQid(q)
+	return q, nil
+}
+
 func (srv *font) Walk(ctx context.Context, fid, nfid *srv9p.Fid, names []string) ([]plan9.Qid, error) {
 	if len(names) == 0 {
 		nfid.SetQid(fid.Qid())
@@ -263,23 +269,11 @@ func (srv *font) Walk(ctx context.Context, fid, nfid *srv9p.Fid, names []string)
 	return qids, nil
 }
 
-func (srv *font) Attach(ctx context.Context, fid, afid *srv9p.Fid, user, aname string) (plan9.Qid, error) {
-	q := dostat(qpath(Qroot, 0, 0, 0, 0), nil)
-	fid.SetQid(q)
-	return q, nil
-}
-
 func (srv *font) Open(ctx context.Context, fid *srv9p.Fid, mode uint8) error {
 	if mode&plan9.OWRITE != 0 || mode&plan9.ORDWR != 0 {
 		return errors.New("permission denied")
 	}
 	return nil
-}
-
-func (srv *font) Stat(ctx context.Context, fid *srv9p.Fid) (*plan9.Dir, error) {
-	var d plan9.Dir
-	_ = dostat(fid.Qid().Path, &d)
-	return &d, nil
 }
 
 func (srv *font) Read(ctx context.Context, fid *srv9p.Fid, data []byte, offset int64) (int, error) {
@@ -341,6 +335,12 @@ func (srv *font) Read(ctx context.Context, fid *srv9p.Fid, data []byte, offset i
 	}
 }
 
+func (srv *font) Stat(ctx context.Context, fid *srv9p.Fid) (*plan9.Dir, error) {
+	var d plan9.Dir
+	_ = dostat(fid.Qid().Path, &d)
+	return &d, nil
+}
+
 func main() {
 	mtpt := ""
 	srvname := "font"
@@ -352,11 +352,12 @@ func main() {
 	// flag
 	flag.Usage = usage
 
-	// fs.srv.Attach = fs.Attach
-	// fs.srv.Walk = fs.Walk
-	// fs.srv.Open = fs.Open
-	// fs.srv.Read = fs.Read
-	// fs.srv.Stat = fs.Stat
+	fs := &font{}
+	fs.srv.Attach = fs.Attach
+	fs.srv.Walk = fs.Walk
+	fs.srv.Open = fs.Open
+	fs.srv.Read = fs.Read
+	fs.srv.Stat = fs.Stat
 
 	memdraw.Init()
 	loadfonts()
