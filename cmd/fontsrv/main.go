@@ -303,9 +303,7 @@ func (srv *font) Read(ctx context.Context, fid *srv9p.Fid, data []byte, offset i
 			var b strings.Builder
 			fmt.Fprintf(&b, "%11d %11d\n", h, a)
 			for i := 0; i < f.NFile; i++ {
-				loRune := int(f.File[i]) * SubfontSize
-				hiRune := loRune + SubfontSize - 1
-				fmt.Fprintf(&b, "0x%06x 0x%06x x%06x.bit\n", loRune, hiRune, loRune)
+				fmt.Fprintf(&b, "0x%06x 0x%06x x%06x.bit\n", int(f.File[i])*SubfontSize, int(f.File[i])*SubfontSize+SubfontSize-1, int(f.File[i])*SubfontSize)
 			}
 			f.FontText = []byte(b.String())
 			f.NFontText = len(f.FontText)
