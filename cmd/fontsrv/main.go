@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 
 	"9fans.net/go/draw/memdraw"
@@ -365,6 +366,7 @@ func main() {
 
 	memdraw.Init()
 	loadfonts()
+	sort.Slice(xfont, func(i, j int) bool { return *xfont[i].name < *xfont[j].name })
 
 	// srv9p.PostMountServe(srvname, mtpt, syscall.MBEFORE, args, r)
 }
