@@ -35,7 +35,7 @@ var lines = []string{
 }
 
 func mksubfont(f *XFont, name string, lo, hi, size int, antialias bool) *memdraw.Subfont {
-	var w, x, y, y0 int
+	var x, y, y0 int
 	var sf *memdraw.Subfont
 
 	m, _ := memdraw.AllocImage(draw.Rect(0, 0, x*(hi+1-lo)+1, y+1), draw.GREY8)

@@ -4,7 +4,8 @@ import (
 	"unicode/utf8"
 )
 
-var xfont *XFont
+var xfont []*XFont
+var nxfont int
 
 const (
 	SubfontSize = 32
@@ -12,9 +13,15 @@ const (
 )
 
 type XFont struct {
-	name    *string
-	loaded  bool
-	unit    int
-	height  float64
-	originY float64
+	name       *string
+	loaded     bool
+	Range      [MaxSubfont]bool
+	File       [MaxSubfont]uint16
+	NFile      int
+	unit       int
+	height     float64
+	originY    float64
+	loadheight func(f *XFont, size int, height, ascent *int)
+	FontText   []byte
+	NFontText  int
 }
