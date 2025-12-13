@@ -342,6 +342,8 @@ func (srv *font) Stat(ctx context.Context, fid *srv9p.Fid) (*plan9.Dir, error) {
 }
 
 func (srv *font) Clunk(fid *srv9p.Fid) {
+	var sf *memdraw.Subfont
+	memdraw.Free(sf.Bits)
 }
 
 func main() {
