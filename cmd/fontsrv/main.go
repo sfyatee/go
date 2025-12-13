@@ -327,7 +327,7 @@ func (srv *font) Read(ctx context.Context, fid *srv9p.Fid, data []byte, offset i
 		//   * copy bitmap in a memdraw.Image,
 		//   * use Fontchar[] info,
 		//   * stream header + image + Fontchar table here.
-		//
+		// mksubfont(f, f.name, lo, hi, size, aa)
 		return 0, errors.New("subfont bitmaps not implemented yet")
 
 	default:
@@ -339,6 +339,9 @@ func (srv *font) Stat(ctx context.Context, fid *srv9p.Fid) (*plan9.Dir, error) {
 	var d plan9.Dir
 	_ = dostat(fid.Qid().Path, &d)
 	return &d, nil
+}
+
+func (srv *font) Clunk(fid *srv9p.Fid) {
 }
 
 func main() {
@@ -358,11 +361,12 @@ func main() {
 	fs.srv.Open = fs.Open
 	fs.srv.Read = fs.Read
 	fs.srv.Stat = fs.Stat
+	fs.srv.Clunk = fs.Clunk
 
 	memdraw.Init()
 	loadfonts()
 
-	srv9p.PostMountServe(srvname, mtpt, syscall.MBEFORE, args, r)
+	// srv9p.PostMountServe(srvname, mtpt, syscall.MBEFORE, args, r)
 }
 
 func dirpackage(buf []byte, offset int64, gen func(i int, d *plan9.Dir) int) (int, error) {
