@@ -5,6 +5,7 @@ import (
 
 	"9fans.net/go/draw"
 	"9fans.net/go/draw/memdraw"
+	// "github.com/go-text/typesetting/"
 	"github.com/go-text/typesetting/fontscan"
 )
 
@@ -16,9 +17,24 @@ func loadfonts() {
 }
 
 func load(f *XFont) {
+	if f == nil || f.loaded {
+		return
+	}
+	f.loaded = true
 }
 
-func mksubfont(f *XFont, name string, lo, hi, size int, antialias bool) {
+var lines = []string{
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+	"abcdefghijklmnopqrstuvwxyz",
+	"g",
+	"ÁĂÇÂÄĊÀČĀĄÅÃĥľƒ",
+	"ὕαλον ϕαγεῖν δύναμαι· τοῦτο οὔ με βλάπτει.",
+	"私はガラスを食べられます。それは私を傷つけません。",
+	"Aš galiu valgyti stiklą ir jis manęs nežeidžia",
+	"Môžem jesť sklo. Nezraní ma.",
+}
+
+func mksubfont(f *XFont, name string, lo, hi, size int, antialias bool) *memdraw.Subfont {
 	var w, x, y, y0 int
 	var sf *memdraw.Subfont
 
@@ -51,17 +67,21 @@ func mksubfont(f *XFont, name string, lo, hi, size int, antialias bool) {
 	} else {
 		x += -x & 31
 	}
-	m1, _ := memdraw.AllocImage(draw.Rect(0, 0, x, y))
-	memdraw.Draw(m1, m1.r, m, m.r.Min, memdraw.Opaque, draw.ZP, draw.S)
+	pix := draw.GREY8
+	if !antialias {
+		pix = draw.GREY1
+	}
+	m1, _ := memdraw.AllocImage(draw.Rect(0, 0, x, y), pix)
+	memdraw.Draw(m1, m1.R, m, m.R.Min, memdraw.Opaque, draw.ZP, draw.S)
 	memdraw.Free(m)
 	memdraw.Free(mc)
 
-	sf.name = nil
-	sf.n = hi + 1 - lo
-	sf.height = m1.r.Dy()
-	sf.ascent = m1.r.Dy() - y0
-	sf.info = fc0
-	sf.bits = m1
+	sf.Name = ""
+	sf.N = hi + 1 - lo
+	sf.Height = uint8(m1.R.Dx())
+	sf.Ascent = int8(m1.R.Dy() - y0)
+	sf.Info = fc0
+	sf.Bits = m1
 
 	return sf
 }

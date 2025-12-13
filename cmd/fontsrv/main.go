@@ -109,6 +109,23 @@ func dostat(path uint64, d *plan9.Dir) plan9.Qid {
 	return q
 }
 
+func rootgen(i int, d *plan9.Dir) int {
+	if i >= nxfont {
+		return -1
+	}
+	_ = dostat(qpath(Qfontdir, i, 0, 0, 0), d)
+	return 0
+}
+
+func fontgen(fid *srv9p.Fid, i int, d *plan9.Dir) int {
+	path := fid.Qid().Path
+	if i >= 2*len(sizes) {
+		return -1
+	}
+	_ = dostat(qpath(Qsizedir, QFONT(path), sizes[i/2], i&1, 0), d)
+	return 0
+}
+
 type font struct {
 	srv srv9p.Server
 }
@@ -126,6 +143,12 @@ func main() {
 	flag.StringVar(&srvname, "s", srvname, "post service at /srv/`name`")
 	// flag
 	flag.Usage = usage
+
+	// fs.srv.Attach = fs.Attach
+	// fs.srv.Walk = fs.Walk
+	// fs.srv.Open = fs.Open
+	// fs.srv.Read = fs.Read
+	// fs.srv.Stat = fs.Stat
 
 	memdraw.Init()
 	loadfonts()
