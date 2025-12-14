@@ -21,12 +21,12 @@ type Client struct {
 }
 
 type Surface struct {
-	client    *Client
-	surface   *ext.SessionLockSurface
-	wlSurface *wl.Surface
-	serial    uint32
-	width     uint32
-	height    uint32
+	client  *Client
+	lock    *ext.SessionLockSurface
+	surface *wl.Surface
+	serial  uint32
+	width   uint32
+	height  uint32
 }
 
 func NewClient() *Client {
@@ -95,13 +95,13 @@ func (c *Client) HandleSessionLockFinished(ev ext.SessionLockFinishedEvent) {
 	close(c.done)
 }
 
-func (h *Surface) HandleSessionLockSurfaceConfigure(ev ext.SessionLockSurfaceConfigureEvent) {
+func (s *Surface) HandleSessionLockSurfaceConfigure(ev ext.SessionLockSurfaceConfigureEvent) {
 	fmt.Printf("Configure: serial=%d, width=%d, height=%d\n", ev.Serial, ev.Width, ev.Height)
-	h.serial = ev.Serial
-	h.width = ev.Width
-	h.height = ev.Height
-	h.surface.AckConfigure(ev.Serial)
-	createSolidColorBuffer(h.wlSurface, h.width, h.height, 64, 0, 0) // Dark red
+	s.serial = ev.Serial
+	s.width = ev.Width
+	s.height = ev.Height
+	s.lock.AckConfigure(ev.Serial)
+	createSolidColorBuffer(s.surface, s.width, s.height, 64, 0, 0) // Dark red
 }
 
 // Helper function to create a solid color buffer for a surface
