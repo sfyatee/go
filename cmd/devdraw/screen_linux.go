@@ -26,6 +26,8 @@ func gfx_main() {
 	wlMain()
 }
 
+var theWindow window.Window
+
 func rpc_attach(client *Client, label, winsize string) (*memdraw.Image, error) {
 	return client.impl.(*theImpl).i, nil
 }
