@@ -63,13 +63,13 @@ type _CMap struct {
  * to draw characters in the specified color (itself a Memimage) in Memimage b.
  */
 
-type subfont struct {
-	name   string
-	n      int             /* number of chars in font */
-	height uint8           /* height of bitmap */
-	ascent int8            /* top of bitmap to baseline */
-	info   []draw.Fontchar /* n+1 character descriptors */
-	bits   *Image          /* of font */
+type Subfont struct {
+	Name   string
+	N      int             /* number of chars in font */
+	Height uint8           /* height of bitmap */
+	Ascent int8            /* top of bitmap to baseline */
+	Info   []draw.Fontchar /* n+1 character descriptors */
+	Bits   *Image          /* of font */
 }
 
 /*

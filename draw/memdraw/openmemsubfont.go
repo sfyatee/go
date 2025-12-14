@@ -13,7 +13,7 @@ import (
 	"9fans.net/go/draw"
 )
 
-func openmemsubfont(name string) (*subfont, error) {
+func openmemsubfont(name string) (*Subfont, error) {
 	f, err := os.Open(name)
 	if err != nil {
 		return nil, err
