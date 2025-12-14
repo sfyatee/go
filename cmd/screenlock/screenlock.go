@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/user"
 	"time"
 
 	"9fans.net/go/draw"
@@ -24,14 +23,6 @@ var (
 	display *draw.Display
 	screen  *draw.Image
 )
-
-func getuser() string {
-	u, err := user.Current()
-	if err != nil {
-		return "unknown"
-	}
-	return u.Username
-}
 
 func usage() {
 	fmt.Fprintf(os.Stderr, "usage: screenlock [-d]\n")
