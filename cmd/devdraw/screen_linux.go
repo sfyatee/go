@@ -1,15 +1,27 @@
 package main
 
 import (
+	"fmt"
+	"image"
+	godraw "image/draw"
+	"log"
+	"os"
+	"sync"
+	"time"
+
 	"9fans.net/go/draw"
 	"9fans.net/go/memdraw"
 	"github.com/neurlang/wayland/libdecor"
+	"github.com/neurlang/wayland/window"
 	"github.com/neurlang/wayland/wl"
 	"github.com/neurlang/wayland/wlclient"
 	"github.com/neurlang/wayland/wlcursor"
 	"github.com/neurlang/wayland/xdg"
 	xkb "github.com/neurlang/wayland/xkbcommon"
 )
+
+func gfx_main() {
+}
 
 func rpc_attach(client *Client, label, winsize string) (*memdraw.Image, error) {
 }
