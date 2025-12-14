@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"9fans.net/go/draw"
-	"9fans.net/go/memdraw"
+	"9fans.net/go/draw/memdraw"
 	"github.com/neurlang/wayland/libdecor"
 	"github.com/neurlang/wayland/window"
 	"github.com/neurlang/wayland/wl"
