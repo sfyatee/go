@@ -160,8 +160,8 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	client := NewClient()
-	if err := client.Connect(); err != nil {
+	conn := NewClient()
+	if err := conn.Connect(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

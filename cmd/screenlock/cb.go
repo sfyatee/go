@@ -20,7 +20,7 @@ type Client struct {
 	done        chan struct{}
 }
 
-type SurfaceHandler struct {
+type Surface struct {
 	client    *Client
 	surface   *ext.SessionLockSurface
 	wlSurface *wl.Surface
@@ -95,7 +95,7 @@ func (c *Client) HandleSessionLockFinished(ev ext.SessionLockFinishedEvent) {
 	close(c.done)
 }
 
-func (h *SurfaceHandler) HandleSessionLockSurfaceConfigure(ev ext.SessionLockSurfaceConfigureEvent) {
+func (h *Surface) HandleSessionLockSurfaceConfigure(ev ext.SessionLockSurfaceConfigureEvent) {
 	fmt.Printf("Configure: serial=%d, width=%d, height=%d\n", ev.Serial, ev.Width, ev.Height)
 	h.serial = ev.Serial
 	h.width = ev.Width
