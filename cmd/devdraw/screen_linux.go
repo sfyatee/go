@@ -20,6 +20,8 @@ import (
 	xkb "github.com/neurlang/wayland/xkbcommon"
 )
 
+var ScreenPix = draw.XRGB32
+
 func gfx_main() {
 }
 
