@@ -23,10 +23,15 @@ import (
 var ScreenPix = draw.XRGB32
 
 func gfx_main() {
-	wlMain
+	wlMain()
 }
 
 func rpc_attach(client *Client, label, winsize string) (*memdraw.Image, error) {
+	return client.impl.(*theImpl).i, nil
+}
+
+type theImpl struct {
+	i *memdraw.Image
 }
 
 func (*theImpl) rpc_setlabel(client *Client, label string) {
