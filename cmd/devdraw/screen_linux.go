@@ -23,6 +23,7 @@ import (
 var ScreenPix = draw.XRGB32
 
 func gfx_main() {
+	wlMain
 }
 
 func rpc_attach(client *Client, label, winsize string) (*memdraw.Image, error) {
@@ -71,4 +72,8 @@ func rpc_putsnarf(data []byte) {
 }
 
 func (*theImpl) rpc_bouncemouse(client *Client, m draw.Mouse) {
+}
+
+func wlMain() {
+	gfx_started()
 }
