@@ -41,7 +41,6 @@ var snarfBuf []byte
 // Ensure we satisfy ClientImpl; WidgetHandler/CloseHandler are enforced by usage.
 var _ ClientImpl = (*theImpl)(nil)
 
-// rpc_attach is called when the client does initdraw.
 // We create a memdraw screen image and a Wayland window/widget wrapping it.
 func rpc_attach(c *Client, label, winsize string) (*memdraw.Image, error) {
 	if wlDisplay == nil {
@@ -227,20 +226,15 @@ func rpc_putsnarf(b []byte) {
 func (*theImpl) rpc_bouncemouse(client *Client, m draw.Mouse) {
 }
 
-// -----------------------------------------------------------------------------
 // window.CloseHandler
-// -----------------------------------------------------------------------------
 
 func (impl *theImpl) Close() {
 	// Window close -> exit the display loop.
 	rpc_shutdown()
 }
 
-// -----------------------------------------------------------------------------
 // window.WidgetHandler implementation
 // This is where we match the wayland.c resize mechanics.
-// -----------------------------------------------------------------------------
-
 // Resize is called when Wayland has decided on a new allocation for our widget.
 // This is the point where we:
 //   - allocate a new memdraw screen image of the new size
@@ -514,32 +508,32 @@ func symToRune(sym uint32) rune {
 		return '\b'
 	case xkb.KeyEscape:
 		return 0x1b
-	case xkb.KeyDelete:
-		return draw.KeyDelete
-	case xkb.KeyInsert:
-		return draw.KeyInsert
-	case xkb.KeyHome:
-		return draw.KeyHome
-	case xkb.KeyEnd:
-		return draw.KeyEnd
-	case xkb.KeyPageUp:
-		return draw.KeyPageUp
-	case xkb.KeyPageDown:
-		return draw.KeyPageDown
-	case xkb.KeyLeft:
-		return draw.KeyLeft
-	case xkb.KeyRight:
-		return draw.KeyRight
 	case xkb.KeyUp:
 		return draw.KeyUp
 	case xkb.KeyDown:
 		return draw.KeyDown
-	case xkb.KeyShiftL, xkb.KeyShiftR:
-		return draw.KeyShift
+	case xkb.KeyLeft:
+		return draw.KeyLeft
+	case xkb.KeyRight:
+		return draw.KeyRight
+	case xkb.KeyPageUp:
+		return draw.KeyPageUp
+	case xkb.KeyPageDown:
+		return draw.KeyPageDown
 	case xkb.KeyControlL, xkb.KeyControlR:
 		return draw.KeyCtl
 	case xkb.KeyAltL, xkb.KeyAltR:
 		return draw.KeyAlt
+	case xkb.KeyShiftL, xkb.KeyShiftR:
+		return draw.KeyShift
+	case xkb.KeyDelete:
+		return draw.KeyDelete
+	case xkb.KeyEnd:
+		return draw.KeyEnd
+	case xkb.KeyHome:
+		return draw.KeyHome
+	case xkb.KeyInsert:
+		return draw.KeyInsert
 	}
 
 	return 0
