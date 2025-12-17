@@ -442,12 +442,15 @@ func (impl *theImpl) Motion(w *window.Widget, in *window.Input, time uint32, x f
 }
 
 func (impl *theImpl) Enter(w *window.Widget, in *window.Input, x float32, y float32) {
+
 }
 
 func (impl *theImpl) Leave(w *window.Widget, in *window.Input) {
+
 }
 
 func (impl *theImpl) Axis(w *window.Widget, in *window.Input, time uint32, axis uint32, value float32) {
+
 }
 
 func (impl *theImpl) AxisSource(w *window.Widget, in *window.Input, source uint32)                 {}
