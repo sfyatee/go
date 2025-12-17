@@ -13,14 +13,10 @@ import (
 	xkb "github.com/neurlang/wayland/xkbcommon"
 )
 
-// Plan 9-style screen pixel format: matches other backends.
-var ScreenPix = draw.XBGR32
+var ScreenPix = draw.XRGB32
 
 // Single Wayland display for this devdraw instance.
 var wlDisplay *window.Display
-
-// Used by rpc_gfxdrawlock/rpc_gfxdrawunlock.
-var rpcgfxlk sync.Mutex
 
 // Simple in-process snarf buffer for now.
 var snarfBuf []byte
@@ -32,14 +28,11 @@ func (*theImpl) rpc_bouncemouse(client *Client, m draw.Mouse) {
 // plus window.WidgetHandler and window.CloseHandler.
 type theImpl struct {
 	client *Client
-
 	win    *window.Window
 	widget *window.Widget
-
-	i    *memdraw.Image
-	rgba *image.RGBA
-
-	mu sync.Mutex
+	i      *memdraw.Image
+	rgba   *image.RGBA
+	mu     sync.Mutex
 }
 
 // Ensure we satisfy ClientImpl; WidgetHandler/CloseHandler are enforced by usage.
@@ -56,10 +49,6 @@ func memimageToRGBA(i *memdraw.Image) *image.RGBA {
 		Rect:   i.R,
 	}
 }
-
-// -----------------------------------------------------------------------------
-// Top-level driver glue
-// -----------------------------------------------------------------------------
 
 // gfx_main is called once from srv.go main().
 // It must not return until devdraw is really done.
@@ -213,7 +202,8 @@ func (impl *theImpl) rpc_flush(c *Client, r draw.Rectangle) {
 	impl.widget.ScheduleRedraw()
 }
 
-// rpc_gfxdrawlock / rpc_gfxdrawunlock are used around draw ops.
+var rpcgfxlk sync.Mutex
+
 func rpc_gfxdrawlock() {
 	rpcgfxlk.Lock()
 }
@@ -360,7 +350,6 @@ func (impl *theImpl) Redraw(w *window.Widget) {
 
 // Input-related methods: stubs for now, since you said we can skip
 // keyboard/mouse for the moment. Signatures must match exactly.
-
 func (impl *theImpl) Enter(
 	w *window.Widget,
 	in *window.Input,
@@ -519,19 +508,16 @@ func (impl *theImpl) Focus(win *window.Window, in *window.Input) {
 }
 
 // Map non-Unicode XKB keysyms into the runes expected by devdraw
-// (draw.KeyFn, draw.KeyHome, draw.KeyLeft, draw.KeyAlt, etc.).
 func symToRune(sym uint32) rune {
 	switch sym {
 	case xkb.KeyReturn:
-		// Make sure Return is always newline.
 		return '\n'
-	case xkb.KeyBackspace:
-		return '\b'
 	case xkb.KeyTab:
 		return '\t'
+	case xkb.KeyBackspace:
+		return '\b'
 	case xkb.KeyEscape:
 		return 0x1b
-
 	case xkb.KeyDelete:
 		return draw.KeyDelete
 	case xkb.KeyInsert:
@@ -544,7 +530,6 @@ func symToRune(sym uint32) rune {
 		return draw.KeyPageUp
 	case xkb.KeyPageDown:
 		return draw.KeyPageDown
-
 	case xkb.KeyLeft:
 		return draw.KeyLeft
 	case xkb.KeyRight:
@@ -553,7 +538,6 @@ func symToRune(sym uint32) rune {
 		return draw.KeyUp
 	case xkb.KeyDown:
 		return draw.KeyDown
-
 	case xkb.KeyShiftL, xkb.KeyShiftR:
 		return draw.KeyShift
 	case xkb.KeyControlL, xkb.KeyControlR:
