@@ -227,7 +227,6 @@ func (*theImpl) rpc_bouncemouse(client *Client, m draw.Mouse) {
 }
 
 // window.CloseHandler
-
 func (impl *theImpl) Close() {
 	// Window close -> exit the display loop.
 	rpc_shutdown()
@@ -469,7 +468,6 @@ func (impl *theImpl) Key(win *window.Window, in *window.Input, time uint32, key 
 
 	// First try to turn the keysym into a Unicode rune using xkb.
 	ch := in.GetRune(&sym, 0)
-
 	if ch == 0 {
 		// Non-printable or no direct UTF mapping; map special keys.
 		switch sym {
@@ -525,4 +523,3 @@ func (impl *theImpl) Key(win *window.Window, in *window.Input, time uint32, key 
 func (impl *theImpl) Focus(win *window.Window, in *window.Input) {
 	// We don't need to do anything special on focus gain/loss for devdraw.
 }
-
