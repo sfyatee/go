@@ -46,7 +46,6 @@ func rpc_attach(c *Client, label, winsize string) (*memdraw.Image, error) {
 	if wlDisplay == nil {
 		return nil, fmt.Errorf("wayland: display not initialised")
 	}
-
 	// If we already have a window for this client, just return its screen.
 	if c.impl != nil {
 		if impl, ok := c.impl.(*theImpl); ok && impl.i != nil {
@@ -341,7 +340,6 @@ func (impl *theImpl) Focus(win *window.Window, in *window.Input) {
 	// We don't need to do anything special on focus gain/loss for devdraw.
 }
 
-// KeyboardHandler implementation.
 // This is called from the Wayland input layer when a key changes state.
 func (impl *theImpl) Key(win *window.Window, in *window.Input, time uint32, key uint32, sym uint32, state wl.KeyboardKeyState, data window.WidgetHandler) {
 	if impl == nil || impl.client == nil {
