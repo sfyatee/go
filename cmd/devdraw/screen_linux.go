@@ -402,10 +402,8 @@ func (impl *theImpl) TouchFrame(
 ) {
 }
 
-// TouchCancel(Widget *Widget, Input *Input, width int32, height int32)
 func (impl *theImpl) TouchCancel(
 	w *window.Widget,
-	in *window.Input,
 	width int32,
 	height int32,
 ) {
