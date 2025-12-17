@@ -403,34 +403,38 @@ func (impl *theImpl) Key(win *window.Window, in *window.Input, time uint32, key 
 }
 
 const (
-	// From linux/input-event-codes.h
-	BtnLeft   = 0x110
-	BtnRight  = 0x111
-	BtnMiddle = 0x112
+	// linux/input-event-codes.h
+	BTN_LEFT   = 0x110
+	BTN_RIGHT  = 0x111
+	BTN_MIDDLE = 0x112
 
 	P9Mouse1 = 1
 	P9Mouse2 = 2
 	P9Mouse3 = 4
 )
 
-func (impl *theImpl) Button(w *window.Widget, in *window.Input, time uint32, button uint32, state wl.PointerButtonState, data window.WidgetHandler) {
+func (impl *theImpl) Button(w *window.Widget, _ *window.Input, time uint32, button uint32, state wl.PointerButtonState, _ window.WidgetHandler) {
 	var m int
+
 	switch button {
-	case BtnLeft:
+	case BTN_LEFT:
 		m = P9Mouse1
-	case BtnMiddle:
+	case BTN_MIDDLE:
 		m = P9Mouse2
-	case BtnRight:
+	case BTN_RIGHT:
 		m = P9Mouse3
 	default:
 		m = 0
 	}
+
 	if state == wl.PointerButtonStatePressed {
 		impl.mouse.Buttons |= m
 	} else {
 		impl.mouse.Buttons &^= m
 	}
+
 	impl.mouse.Msec = time
+
 	gfx_mousetrack(impl.client, impl.mouse.X, impl.mouse.Y, impl.mouse.Buttons, impl.mouse.Msec)
 }
 
