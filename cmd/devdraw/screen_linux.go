@@ -458,29 +458,58 @@ func (impl *theImpl) PointerFrame(
 
 // KeyboardHandler implementation.
 // This is called from the Wayland input layer when a key changes state.
-func (impl *theImpl) Key(
-	win *window.Window,
-	in *window.Input,
-	time uint32,
-	key uint32,
-	sym uint32,
-	state wl.KeyboardKeyState,
-	data window.WidgetHandler,
-) {
+func (impl *theImpl) Key(win *window.Window, in *window.Input, time uint32, key uint32, sym uint32, state wl.KeyboardKeyState, data window.WidgetHandler) {
 	if impl == nil || impl.client == nil {
 		return
 	}
-	// Only act on key press, like the shiny backend.
+	// Only act on key press, like the shiny backend / C devdraw.
 	if state != wl.KeyboardKeyStatePressed {
 		return
 	}
 
-	// First try to turn the keysym into a Unicode rune.
+	// First try to turn the keysym into a Unicode rune using xkb.
 	ch := in.GetRune(&sym, 0)
 
 	if ch == 0 {
-		// Non-printable; map special keys (F-keys, arrows, etc.).
-		ch = symToRune(sym)
+		// Non-printable or no direct UTF mapping; map special keys.
+		switch sym {
+		case xkb.KeyReturn:
+			ch = '\n'
+		case xkb.KeyTab:
+			ch = '\t'
+		case xkb.KeyBackspace:
+			ch = '\b'
+		case xkb.KeyEscape:
+			ch = 0x1b
+		case xkb.KeyUp:
+			ch = draw.KeyUp
+		case xkb.KeyDown:
+			ch = draw.KeyDown
+		case xkb.KeyLeft:
+			ch = draw.KeyLeft
+		case xkb.KeyRight:
+			ch = draw.KeyRight
+		case xkb.KeyPageUp:
+			ch = draw.KeyPageUp
+		case xkb.KeyPageDown:
+			ch = draw.KeyPageDown
+		case xkb.KeyControlL, xkb.KeyControlR:
+			ch = draw.KeyCtl
+		case xkb.KeyAltL, xkb.KeyAltR:
+			ch = draw.KeyAlt
+		case xkb.KeyShiftL, xkb.KeyShiftR:
+			ch = draw.KeyShift
+		case xkb.KeyDelete:
+			ch = draw.KeyDelete
+		case xkb.KeyEnd:
+			ch = draw.KeyEnd
+		case xkb.KeyHome:
+			ch = draw.KeyHome
+		case xkb.KeyInsert:
+			ch = draw.KeyInsert
+		default:
+			ch = 0
+		}
 	} else if ch == '\r' {
 		// Normalise CR to NL for Plan 9.
 		ch = '\n'
@@ -497,44 +526,3 @@ func (impl *theImpl) Focus(win *window.Window, in *window.Input) {
 	// We don't need to do anything special on focus gain/loss for devdraw.
 }
 
-// Map non-Unicode XKB keysyms into the runes expected by devdraw
-func symToRune(sym uint32) rune {
-	switch sym {
-	case xkb.KeyReturn:
-		return '\n'
-	case xkb.KeyTab:
-		return '\t'
-	case xkb.KeyBackspace:
-		return '\b'
-	case xkb.KeyEscape:
-		return 0x1b
-	case xkb.KeyUp:
-		return draw.KeyUp
-	case xkb.KeyDown:
-		return draw.KeyDown
-	case xkb.KeyLeft:
-		return draw.KeyLeft
-	case xkb.KeyRight:
-		return draw.KeyRight
-	case xkb.KeyPageUp:
-		return draw.KeyPageUp
-	case xkb.KeyPageDown:
-		return draw.KeyPageDown
-	case xkb.KeyControlL, xkb.KeyControlR:
-		return draw.KeyCtl
-	case xkb.KeyAltL, xkb.KeyAltR:
-		return draw.KeyAlt
-	case xkb.KeyShiftL, xkb.KeyShiftR:
-		return draw.KeyShift
-	case xkb.KeyDelete:
-		return draw.KeyDelete
-	case xkb.KeyEnd:
-		return draw.KeyEnd
-	case xkb.KeyHome:
-		return draw.KeyHome
-	case xkb.KeyInsert:
-		return draw.KeyInsert
-	}
-
-	return 0
-}
