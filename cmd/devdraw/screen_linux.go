@@ -124,6 +124,7 @@ type theImpl struct {
 	win    *window.Window
 	widget *window.Widget
 	i      *memdraw.Image
+	mouse  draw.Mouse
 	rgba   *image.RGBA
 	mu     sync.Mutex
 }
@@ -238,13 +239,7 @@ func (impl *theImpl) Close() {
 // This is the point where we:
 //   - allocate a new memdraw screen image of the new size
 //   - call gfx_replacescreenimage so the Plan 9 side sees the resize
-func (impl *theImpl) Resize(
-	w *window.Widget,
-	width int32,
-	height int32,
-	pwidth int32,
-	pheight int32,
-) {
+func (impl *theImpl) Resize(w *window.Widget, width int32, height int32, pwidth int32, pheight int32) {
 	if width <= 0 || height <= 0 {
 		return
 	}
@@ -339,30 +334,6 @@ func (impl *theImpl) Redraw(w *window.Widget) {
 
 // Input-related methods: stubs for now, since you said we can skip
 // keyboard/mouse for the moment. Signatures must match exactly.
-func (impl *theImpl) Enter(
-	w *window.Widget,
-	in *window.Input,
-	x float32,
-	y float32,
-) {
-}
-
-func (impl *theImpl) Leave(
-	w *window.Widget,
-	in *window.Input,
-) {
-}
-
-func (impl *theImpl) Motion(
-	w *window.Widget,
-	in *window.Input,
-	time uint32,
-	x float32,
-	y float32,
-) int {
-	return 0
-}
-
 func (impl *theImpl) Button(
 	w *window.Widget,
 	in *window.Input,
@@ -417,42 +388,14 @@ func (impl *theImpl) TouchCancel(
 ) {
 }
 
-func (impl *theImpl) Axis(
-	w *window.Widget,
-	in *window.Input,
-	time uint32,
-	axis uint32,
-	value float32,
-) {
-}
-
-func (impl *theImpl) AxisSource(
-	w *window.Widget,
-	in *window.Input,
-	source uint32,
-) {
-}
-
-func (impl *theImpl) AxisStop(
-	w *window.Widget,
-	in *window.Input,
-	time uint32,
-	axis uint32,
-) {
-}
-
-func (impl *theImpl) AxisDiscrete(
-	w *window.Widget,
-	in *window.Input,
-	axis uint32,
-	discrete int32,
-) {
-}
-
 func (impl *theImpl) PointerFrame(
 	w *window.Widget,
 	in *window.Input,
 ) {
+}
+
+func (impl *theImpl) Focus(win *window.Window, in *window.Input) {
+	// We don't need to do anything special on focus gain/loss for devdraw.
 }
 
 // KeyboardHandler implementation.
@@ -469,7 +412,6 @@ func (impl *theImpl) Key(win *window.Window, in *window.Input, time uint32, key 
 	// First try to turn the keysym into a Unicode rune using xkb.
 	ch := in.GetRune(&sym, 0)
 	if ch == 0 {
-		// Non-printable or no direct UTF mapping; map special keys.
 		switch sym {
 		case xkb.KeyReturn:
 			ch = '\n'
@@ -520,6 +462,22 @@ func (impl *theImpl) Key(win *window.Window, in *window.Input, time uint32, key 
 	gfx_keystroke(impl.client, ch)
 }
 
-func (impl *theImpl) Focus(win *window.Window, in *window.Input) {
-	// We don't need to do anything special on focus gain/loss for devdraw.
+func (impl *theImpl) Motion(w *window.Widget, in *window.Input, time uint32, x float32, y float32) int {
+	impl.mouse.Point = draw.Pt(int(x), int(y))
+	impl.mouse.Msec = time
+	gfx_mousetrack(impl.client, impl.mouse.X, impl.mouse.Y, impl.mouse.Buttons, impl.mouse.Msec)
+	return 0
 }
+
+func (impl *theImpl) Enter(w *window.Widget, in *window.Input, x float32, y float32) {
+}
+
+func (impl *theImpl) Leave(w *window.Widget, in *window.Input) {
+}
+
+func (impl *theImpl) Axis(w *window.Widget, in *window.Input, time uint32, axis uint32, value float32) {
+}
+
+func (impl *theImpl) AxisSource(w *window.Widget, in *window.Input, source uint32)                 {}
+func (impl *theImpl) AxisStop(w *window.Widget, in *window.Input, time uint32, axis uint32)        {}
+func (impl *theImpl) AxisDiscrete(w *window.Widget, in *window.Input, axis uint32, discrete int32) {}
