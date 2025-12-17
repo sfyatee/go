@@ -423,11 +423,14 @@ func (impl *theImpl) Leave(w *window.Widget, in *window.Input) {
 func (impl *theImpl) Axis(w *window.Widget, in *window.Input, time uint32, axis uint32, value float32) {
 }
 
-func (impl *theImpl) AxisSource(w *window.Widget, in *window.Input, source uint32)
-func (impl *theImpl) AxisStop(w *window.Widget, in *window.Input, time uint32, axis uint32)
-func (impl *theImpl) AxisDiscrete(w *window.Widget, in *window.Input, axis uint32, discrete int32)
-func (impl *theImpl) TouchUp(w *window.Widget, in *window.Input, serial uint32, time uint32, id int32)
-func (impl *theImpl) TouchDown(w *window.Widget, in *window.Input, serial uint32, time uint32, id int32, x float32, y float32)
-func (impl *theImpl) TouchMotion(w *window.Widget, in *window.Input, time uint32, id int32, x float32, y float32)
-func (impl *theImpl) TouchFrame(w *window.Widget, in *window.Input)
-func (impl *theImpl) TouchCancel(w *window.Widget, width int32, height int32) // NOTE: TouchCancel in the window.WidgetHandler interface has *no* Input param.
+func (impl *theImpl) AxisSource(w *window.Widget, in *window.Input, source uint32)                 {}
+func (impl *theImpl) AxisStop(w *window.Widget, in *window.Input, time uint32, axis uint32)        {}
+func (impl *theImpl) AxisDiscrete(w *window.Widget, in *window.Input, axis uint32, discrete int32) {}
+func (impl *theImpl) TouchUp(w *window.Widget, in *window.Input, serial uint32, time uint32, id int32) {
+}
+func (impl *theImpl) TouchDown(w *window.Widget, in *window.Input, serial uint32, time uint32, id int32, x float32, y float32) {
+}
+func (impl *theImpl) TouchMotion(w *window.Widget, in *window.Input, time uint32, id int32, x float32, y float32) {
+}
+func (impl *theImpl) TouchFrame(w *window.Widget, in *window.Input)           {}
+func (impl *theImpl) TouchCancel(w *window.Widget, width int32, height int32) {} // NOTE: TouchCancel in the window.WidgetHandler interface has *no* Input param.
