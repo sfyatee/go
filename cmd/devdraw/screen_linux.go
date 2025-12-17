@@ -334,60 +334,6 @@ func (impl *theImpl) Redraw(w *window.Widget) {
 
 // Input-related methods: stubs for now, since you said we can skip
 // keyboard/mouse for the moment. Signatures must match exactly.
-func (impl *theImpl) Button(
-	w *window.Widget,
-	in *window.Input,
-	time uint32,
-	button uint32,
-	state wl.PointerButtonState,
-	data window.WidgetHandler,
-) {
-}
-
-func (impl *theImpl) TouchUp(
-	w *window.Widget,
-	in *window.Input,
-	serial uint32,
-	time uint32,
-	id int32,
-) {
-}
-
-func (impl *theImpl) TouchDown(
-	w *window.Widget,
-	in *window.Input,
-	serial uint32,
-	time uint32,
-	id int32,
-	x float32,
-	y float32,
-) {
-}
-
-func (impl *theImpl) TouchMotion(
-	w *window.Widget,
-	in *window.Input,
-	time uint32,
-	id int32,
-	x float32,
-	y float32,
-) {
-}
-
-func (impl *theImpl) TouchFrame(
-	w *window.Widget,
-	in *window.Input,
-) {
-}
-
-// NOTE: TouchCancel in the window.WidgetHandler interface has *no* Input param.
-func (impl *theImpl) TouchCancel(
-	w *window.Widget,
-	width int32,
-	height int32,
-) {
-}
-
 func (impl *theImpl) PointerFrame(
 	w *window.Widget,
 	in *window.Input,
@@ -462,6 +408,9 @@ func (impl *theImpl) Key(win *window.Window, in *window.Input, time uint32, key 
 	gfx_keystroke(impl.client, ch)
 }
 
+func (impl *theImpl) Button(w *window.Widget, in *window.Input, time uint32, button uint32, state wl.PointerButtonState, data window.WidgetHandler) {
+}
+
 func (impl *theImpl) Motion(w *window.Widget, in *window.Input, time uint32, x float32, y float32) int {
 	impl.mouse.Point = draw.Pt(int(x), int(y))
 	impl.mouse.Msec = time
@@ -478,6 +427,11 @@ func (impl *theImpl) Leave(w *window.Widget, in *window.Input) {
 func (impl *theImpl) Axis(w *window.Widget, in *window.Input, time uint32, axis uint32, value float32) {
 }
 
-func (impl *theImpl) AxisSource(w *window.Widget, in *window.Input, source uint32)                 {}
-func (impl *theImpl) AxisStop(w *window.Widget, in *window.Input, time uint32, axis uint32)        {}
-func (impl *theImpl) AxisDiscrete(w *window.Widget, in *window.Input, axis uint32, discrete int32) {}
+func (impl *theImpl) AxisSource(w *window.Widget, in *window.Input, source uint32)
+func (impl *theImpl) AxisStop(w *window.Widget, in *window.Input, time uint32, axis uint32)
+func (impl *theImpl) AxisDiscrete(w *window.Widget, in *window.Input, axis uint32, discrete int32)
+func (impl *theImpl) TouchUp(w *window.Widget, in *window.Input, serial uint32, time uint32, id int32)
+func (impl *theImpl) TouchDown(w *window.Widget, in *window.Input, serial uint32, time uint32, id int32, x float32, y float32)
+func (impl *theImpl) TouchMotion(w *window.Widget, in *window.Input, time uint32, id int32, x float32, y float32)
+func (impl *theImpl) TouchFrame(w *window.Widget, in *window.Input)
+func (impl *theImpl) TouchCancel(w *window.Widget, width int32, height int32) // NOTE: TouchCancel in the window.WidgetHandler interface has *no* Input param.
