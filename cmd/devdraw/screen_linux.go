@@ -334,10 +334,7 @@ func (impl *theImpl) Redraw(w *window.Widget) {
 
 // Input-related methods: stubs for now, since you said we can skip
 // keyboard/mouse for the moment. Signatures must match exactly.
-func (impl *theImpl) PointerFrame(
-	w *window.Widget,
-	in *window.Input,
-) {
+func (impl *theImpl) PointerFrame(w *window.Widget, in *window.Input) {
 }
 
 func (impl *theImpl) Focus(win *window.Window, in *window.Input) {
@@ -409,6 +406,8 @@ func (impl *theImpl) Key(win *window.Window, in *window.Input, time uint32, key 
 }
 
 func (impl *theImpl) Button(w *window.Widget, in *window.Input, time uint32, button uint32, state wl.PointerButtonState, data window.WidgetHandler) {
+	impl.mouse.Msec = time
+	gfx_mousetrack(impl.client, impl.mouse.X, impl.mouse.Y, impl.mouse.Buttons, impl.mouse.Msec)
 }
 
 func (impl *theImpl) Motion(w *window.Widget, in *window.Input, time uint32, x float32, y float32) int {
