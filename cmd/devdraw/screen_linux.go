@@ -13,17 +13,20 @@ import (
 	"github.com/neurlang/wayland/wl"
 )
 
-// ScreenPix is the pixel format used for the memdraw screen.
+// Plan 9-style screen pixel format: matches other backends.
 var ScreenPix = draw.XBGR32
 
-// wlDisplay is the single Wayland display used by this devdraw instance.
+// Single Wayland display for this devdraw instance.
 var wlDisplay *window.Display
 
-// rpcgfxlk is used by rpc_gfxdrawlock/rpc_gfxdrawunlock.
+// Used by rpc_gfxdrawlock/rpc_gfxdrawunlock.
 var rpcgfxlk sync.Mutex
 
-// theImpl holds the per-client Wayland state and implements ClientImpl
-// and window.WidgetHandler (via its methods).
+// Simple in-process snarf buffer for now.
+var snarfBuf []byte
+
+// theImpl is the per-client backend state and implements ClientImpl
+// plus window.WidgetHandler and window.CloseHandler.
 type theImpl struct {
 	client *Client
 
@@ -36,12 +39,14 @@ type theImpl struct {
 	mu sync.Mutex
 }
 
-// Compile-time check only for ClientImpl; WidgetHandler is enforced when
-// we pass *theImpl to AddWidget.
+// Ensure we satisfy ClientImpl; WidgetHandler/CloseHandler are enforced by usage.
 var _ ClientImpl = (*theImpl)(nil)
 
-// memimageToRGBA creates an image.RGBA view over the memdraw.Image pixels.
+// memimageToRGBA builds an image.RGBA view over the memdraw pixels.
 func memimageToRGBA(i *memdraw.Image) *image.RGBA {
+	if i == nil {
+		return nil
+	}
 	return &image.RGBA{
 		Pix:    i.BytesAt(i.R.Min),
 		Stride: int(i.Width) * 4,
@@ -49,8 +54,12 @@ func memimageToRGBA(i *memdraw.Image) *image.RGBA {
 	}
 }
 
-// gfx_main is called once from srv.go. Set up the Wayland Display and
-// start its event loop in a goroutine, then tell the RPC side we’re ready.
+// -----------------------------------------------------------------------------
+// Top-level driver glue
+// -----------------------------------------------------------------------------
+
+// gfx_main is called once from srv.go main().
+// It must not return until devdraw is really done.
 func gfx_main() {
 	d, err := window.DisplayCreate(os.Args)
 	if err != nil {
@@ -62,26 +71,25 @@ func gfx_main() {
 	// Start the RPC server (serveproc(client0) in srv.go).
 	gfx_started()
 
-	// Run the Wayland event loop on this goroutine and DO NOT return
-	// until the display is told to Exit() (e.g. via window close).
+	// Run the Wayland event loop here and block until Exit().
 	window.DisplayRun(d)
 }
 
-// rpc_attach is called for the first initdraw of a client.
-// We create a Wayland window + widget and a memdraw.Image backing store.
+// rpc_attach is called when the client does initdraw.
+// We create a memdraw screen image and a Wayland window/widget wrapping it.
 func rpc_attach(c *Client, label, winsize string) (*memdraw.Image, error) {
 	if wlDisplay == nil {
 		return nil, fmt.Errorf("wayland: display not initialised")
 	}
 
-	// If we've already attached this client, just return its screen image.
+	// If we already have a window for this client, just return its screen.
 	if c.impl != nil {
 		if impl, ok := c.impl.(*theImpl); ok && impl.i != nil {
 			return impl.i, nil
 		}
 	}
 
-	// Decide an initial size. If winsize parses, use it, otherwise 1024x768.
+	// Initial window rectangle – default 1024x768, optionally from winsize.
 	r := draw.Rect(0, 0, 1024, 768)
 	if winsize != "" {
 		var haveMin bool
@@ -90,7 +98,7 @@ func rpc_attach(c *Client, label, winsize string) (*memdraw.Image, error) {
 		}
 	}
 
-	// Create the memdraw backing store.
+	// Allocate memdraw backing store for the screen.
 	img, err := memdraw.AllocImage(r, ScreenPix)
 	if err != nil {
 		return nil, err
@@ -107,10 +115,10 @@ func rpc_attach(c *Client, label, winsize string) (*memdraw.Image, error) {
 		c.displaydpi = 100
 	}
 
-	// Create the Wayland toplevel window.
+	// Create a Wayland toplevel window.
 	win := window.Create(wlDisplay)
 	if win == nil {
-		return nil, fmt.Errorf("wayland: failed to create window")
+		return nil, fmt.Errorf("wayland: failed to create Wayland window")
 	}
 	impl.win = win
 
@@ -118,13 +126,14 @@ func rpc_attach(c *Client, label, winsize string) (*memdraw.Image, error) {
 		win.SetTitle(label)
 	}
 	win.SetBufferType(window.BufferTypeShm)
-	win.SetCloseHandler(impl) // theImpl has Close() below
+	win.SetCloseHandler(impl) // implement Close() below
 
-	// Create a widget covering the main surface and let impl handle it.
+	// Attach our handler as the main widget for the window content.
 	w := win.AddWidget(impl) // *theImpl must satisfy window.WidgetHandler
 	impl.widget = w
 
-	// Ask for an initial size and a first redraw.
+	// Ask for an initial size and redraw; Wayland's internal resize logic
+	// will call our Resize() and Redraw().
 	w.ScheduleResize(int32(r.Dx()), int32(r.Dy()))
 	w.ScheduleRedraw()
 
@@ -138,7 +147,70 @@ func rpc_shutdown() {
 	}
 }
 
-// rpc_gfxdrawlock / rpc_gfxdrawunlock wrap access to the real display.
+// -----------------------------------------------------------------------------
+// ClientImpl hooks used from devdraw.go
+// -----------------------------------------------------------------------------
+
+// Called when the draw library has recreated the root memdraw image but the
+// window size is unchanged. For the Wayland shm path, we just update our view.
+func (impl *theImpl) rpc_resizeimg(c *Client) {
+	if impl == nil || c == nil {
+		return
+	}
+	impl.mu.Lock()
+	defer impl.mu.Unlock()
+
+	img := c.screenimage
+	impl.i = img
+	impl.rgba = memimageToRGBA(img)
+	if img != nil {
+		c.mouserect = img.R
+	}
+}
+
+// Called when the client requests a resize (e.g. drawresizewindow()).
+func (impl *theImpl) rpc_resizewindow(c *Client, r draw.Rectangle) {
+	if impl == nil || impl.widget == nil {
+		return
+	}
+	// Let the Wayland library drive the mechanics; this mirrors wayland.c:
+	// - ScheduleResize -> pendingAllocation
+	// - later Window.Run -> idleResize -> windowDoResize -> surfaceResize
+	// - surfaceResize -> Widget.Resize(...) (our Resize below)
+	impl.widget.ScheduleResize(int32(r.Dx()), int32(r.Dy()))
+}
+
+// Cursor, label, mouse, topwin: mostly stubs for now.
+
+func (impl *theImpl) rpc_setcursor(c *Client, cur *draw.Cursor, cur2 *draw.Cursor2) {
+	// TODO: hook to window cursors if you want Plan 9's fat cursors.
+}
+
+func (impl *theImpl) rpc_setlabel(c *Client, label string) {
+	if impl == nil || impl.win == nil {
+		return
+	}
+	impl.win.SetTitle(label)
+}
+
+func (impl *theImpl) rpc_setmouse(c *Client, p draw.Point) {
+	// Wayland doesn’t let us warp the pointer, so ignore for now.
+}
+
+func (impl *theImpl) rpc_topwin(c *Client) {
+	// Could be used to raise the window if the API ever exposes it.
+}
+
+// Called when some portion of the memdraw screen changed.
+// We just schedule a redraw; Wayland will coalesce and call Redraw.
+func (impl *theImpl) rpc_flush(c *Client, r draw.Rectangle) {
+	if impl == nil || impl.widget == nil {
+		return
+	}
+	impl.widget.ScheduleRedraw()
+}
+
+// rpc_gfxdrawlock / rpc_gfxdrawunlock are used around draw ops.
 func rpc_gfxdrawlock() {
 	rpcgfxlk.Lock()
 }
@@ -147,9 +219,7 @@ func rpc_gfxdrawunlock() {
 	rpcgfxlk.Unlock()
 }
 
-// Simple in-process snarf buffer for now.
-var snarfBuf []byte
-
+// Snarfing: for now, just keep a local buffer.
 func rpc_getsnarf() []byte {
 	if len(snarfBuf) == 0 {
 		return nil
@@ -168,65 +238,24 @@ func rpc_putsnarf(b []byte) {
 	copy(snarfBuf, b)
 }
 
-// --- ClientImpl methods (called from devdraw.go) ---
-
-func (impl *theImpl) rpc_resizeimg(c *Client) {
-	// devdraw wants to recreate the root image. We'll just treat the next
-	// Resize from Wayland as authoritative and reallocate there.
-}
-
-func (impl *theImpl) rpc_resizewindow(c *Client, r draw.Rectangle) {
-	// Request a resize of the Wayland window. We map the requested
-	// pixels directly to surface coordinates.
-	if impl == nil || impl.widget == nil {
-		return
-	}
-	impl.widget.ScheduleResize(int32(r.Dx()), int32(r.Dy()))
-}
-
-func (impl *theImpl) rpc_setcursor(c *Client, cur *draw.Cursor, cur2 *draw.Cursor2) {
-	// TODO: map Plan 9 cursors onto Wayland cursors.
-}
-
-func (impl *theImpl) rpc_setlabel(c *Client, label string) {
-	if impl == nil || impl.win == nil {
-		return
-	}
-	impl.win.SetTitle(label)
-}
-
-func (impl *theImpl) rpc_setmouse(c *Client, p draw.Point) {
-	// We don't try to warp the host pointer.
-}
-
-func (impl *theImpl) rpc_topwin(c *Client) {
-	// TODO: if the window API gets a "raise" call, use it here.
-}
-
-func (impl *theImpl) rpc_bouncemouse(c *Client, m draw.Mouse) {
-	// Not implemented; mouse input is not hooked up yet.
-}
-
-// rpc_flush is called when some rectangle of the memdraw screen changed.
-// For now we ignore 'r' and repaint the whole window.
-func (impl *theImpl) rpc_flush(c *Client, r draw.Rectangle) {
-	if impl == nil || impl.widget == nil {
-		return
-	}
-	impl.widget.ScheduleRedraw()
-}
-
-// --- window.CloseHandler ---
+// -----------------------------------------------------------------------------
+// window.CloseHandler
+// -----------------------------------------------------------------------------
 
 func (impl *theImpl) Close() {
-	// Close button on the Wayland window -> shut down devdraw.
+	// Window close -> exit the display loop.
 	rpc_shutdown()
 }
 
-// --- window.WidgetHandler implementation ---
-// Signatures MUST EXACTLY match the WidgetHandler interface in window/window.go.
+// -----------------------------------------------------------------------------
+// window.WidgetHandler implementation
+// This is where we match the wayland.c resize mechanics.
+// -----------------------------------------------------------------------------
 
-// Resize(Widget *Widget, width int32, height int32, pwidth int32, pheight int32)
+// Resize is called when Wayland has decided on a new allocation for our widget.
+// This is the point where we:
+//   - allocate a new memdraw screen image of the new size
+//   - call gfx_replacescreenimage so the Plan 9 side sees the resize
 func (impl *theImpl) Resize(
 	w *window.Widget,
 	width int32,
@@ -243,7 +272,7 @@ func (impl *theImpl) Resize(
 	impl.mu.Lock()
 	defer impl.mu.Unlock()
 
-	// If the size didn't change, keep the existing image.
+	// If nothing actually changed, keep the current image.
 	if impl.i != nil && impl.i.R == r {
 		return
 	}
@@ -257,16 +286,22 @@ func (impl *theImpl) Resize(
 	impl.i = img
 	impl.rgba = memimageToRGBA(img)
 
+	// Tell devdraw that the root screen image changed, exactly like the
+	// C backends do. This will:
+	//   - swap c.screenimage
+	//   - free the old one when no longer referenced
+	//   - call gfx_mouseresized(c), which triggers drawrefreshscreen().
 	if impl.client != nil {
+		gfx_replacescreenimage(impl.client, img)
 		impl.client.mouserect = img.R
 		if impl.client.displaydpi == 0 {
 			impl.client.displaydpi = 100
 		}
-		gfx_replacescreenimage(impl.client, img)
 	}
 }
 
-// Redraw(Widget *Widget)
+// Redraw is called when Wayland wants the window contents.
+// We copy from the memdraw backing image into the current shm buffer.
 func (impl *theImpl) Redraw(w *window.Widget) {
 	impl.mu.Lock()
 	defer impl.mu.Unlock()
@@ -298,7 +333,7 @@ func (impl *theImpl) Redraw(w *window.Widget) {
 	srcW := impl.i.R.Dx()
 	srcH := impl.i.R.Dy()
 
-	// Clamp copy region to the smaller of the two images.
+	// Copy the overlapping region.
 	wCopy := dstW
 	if wCopy > srcW {
 		wCopy = srcW
@@ -320,7 +355,9 @@ func (impl *theImpl) Redraw(w *window.Widget) {
 	}
 }
 
-// Enter(Widget *Widget, Input *Input, x float32, y float32)
+// Input-related methods: stubs for now, since you said we can skip
+// keyboard/mouse for the moment. Signatures must match exactly.
+
 func (impl *theImpl) Enter(
 	w *window.Widget,
 	in *window.Input,
@@ -329,14 +366,12 @@ func (impl *theImpl) Enter(
 ) {
 }
 
-// Leave(Widget *Widget, Input *Input)
 func (impl *theImpl) Leave(
 	w *window.Widget,
 	in *window.Input,
 ) {
 }
 
-// Motion(Widget *Widget, Input *Input, time uint32, x float32, y float32) int
 func (impl *theImpl) Motion(
 	w *window.Widget,
 	in *window.Input,
@@ -347,9 +382,6 @@ func (impl *theImpl) Motion(
 	return 0
 }
 
-// Button(Widget *Widget, Input *Input, time uint32, button uint32,
-//
-//	state wl.PointerButtonState, data WidgetHandler)
 func (impl *theImpl) Button(
 	w *window.Widget,
 	in *window.Input,
@@ -360,7 +392,6 @@ func (impl *theImpl) Button(
 ) {
 }
 
-// TouchUp(Widget *Widget, Input *Input, serial uint32, time uint32, id int32)
 func (impl *theImpl) TouchUp(
 	w *window.Widget,
 	in *window.Input,
@@ -370,10 +401,6 @@ func (impl *theImpl) TouchUp(
 ) {
 }
 
-// TouchDown(Widget *Widget, Input *Input,
-//
-//	serial uint32, time uint32, id int32,
-//	x float32, y float32)
 func (impl *theImpl) TouchDown(
 	w *window.Widget,
 	in *window.Input,
@@ -385,7 +412,6 @@ func (impl *theImpl) TouchDown(
 ) {
 }
 
-// TouchMotion(Widget *Widget, Input *Input, time uint32, id int32, x float32, y float32)
 func (impl *theImpl) TouchMotion(
 	w *window.Widget,
 	in *window.Input,
@@ -396,13 +422,13 @@ func (impl *theImpl) TouchMotion(
 ) {
 }
 
-// TouchFrame(Widget *Widget, Input *Input)
 func (impl *theImpl) TouchFrame(
 	w *window.Widget,
 	in *window.Input,
 ) {
 }
 
+// NOTE: TouchCancel in the window.WidgetHandler interface has *no* Input param.
 func (impl *theImpl) TouchCancel(
 	w *window.Widget,
 	width int32,
@@ -410,7 +436,6 @@ func (impl *theImpl) TouchCancel(
 ) {
 }
 
-// Axis(Widget *Widget, Input *Input, time uint32, axis uint32, value float32)
 func (impl *theImpl) Axis(
 	w *window.Widget,
 	in *window.Input,
@@ -420,7 +445,6 @@ func (impl *theImpl) Axis(
 ) {
 }
 
-// AxisSource(Widget *Widget, Input *Input, source uint32)
 func (impl *theImpl) AxisSource(
 	w *window.Widget,
 	in *window.Input,
@@ -428,7 +452,6 @@ func (impl *theImpl) AxisSource(
 ) {
 }
 
-// AxisStop(Widget *Widget, Input *Input, time uint32, axis uint32)
 func (impl *theImpl) AxisStop(
 	w *window.Widget,
 	in *window.Input,
@@ -437,7 +460,6 @@ func (impl *theImpl) AxisStop(
 ) {
 }
 
-// AxisDiscrete(Widget *Widget, Input *Input, axis uint32, discrete int32)
 func (impl *theImpl) AxisDiscrete(
 	w *window.Widget,
 	in *window.Input,
@@ -446,7 +468,6 @@ func (impl *theImpl) AxisDiscrete(
 ) {
 }
 
-// PointerFrame(Widget *Widget, Input *Input)
 func (impl *theImpl) PointerFrame(
 	w *window.Widget,
 	in *window.Input,
