@@ -22,8 +22,8 @@ var wlDisplay *window.Display
 // rpcgfxlk is used by rpc_gfxdrawlock/rpc_gfxdrawunlock.
 var rpcgfxlk sync.Mutex
 
-// theImpl holds the per-client Wayland state and implements both
-// ClientImpl (devdraw side) and window.WidgetHandler (Wayland side).
+// theImpl holds the per-client Wayland state and implements ClientImpl
+// and window.WidgetHandler (via its methods).
 type theImpl struct {
 	client *Client
 
@@ -36,10 +36,9 @@ type theImpl struct {
 	mu sync.Mutex
 }
 
-// Compile-time interface checks.
+// Compile-time check only for ClientImpl; WidgetHandler is enforced when
+// we pass *theImpl to AddWidget.
 var _ ClientImpl = (*theImpl)(nil)
-var _ window.WidgetHandler = (*theImpl)(nil)
-var _ window.CloseHandler = (*theImpl)(nil)
 
 // memimageToRGBA creates an image.RGBA view over the memdraw.Image pixels.
 func memimageToRGBA(i *memdraw.Image) *image.RGBA {
@@ -118,10 +117,10 @@ func rpc_attach(c *Client, label, winsize string) (*memdraw.Image, error) {
 		win.SetTitle(label)
 	}
 	win.SetBufferType(window.BufferTypeShm)
-	win.SetCloseHandler(impl)
+	win.SetCloseHandler(impl) // theImpl has Close() below
 
 	// Create a widget covering the main surface and let impl handle it.
-	w := win.AddWidget(impl)
+	w := win.AddWidget(impl) // *theImpl must satisfy window.WidgetHandler
 	impl.widget = w
 
 	// Ask for an initial size and a first redraw.
@@ -129,6 +128,43 @@ func rpc_attach(c *Client, label, winsize string) (*memdraw.Image, error) {
 	w.ScheduleRedraw()
 
 	return img, nil
+}
+
+// rpc_shutdown is called when the last client exits.
+func rpc_shutdown() {
+	if wlDisplay != nil {
+		wlDisplay.Exit()
+	}
+}
+
+// rpc_gfxdrawlock / rpc_gfxdrawunlock wrap access to the real display.
+func rpc_gfxdrawlock() {
+	rpcgfxlk.Lock()
+}
+
+func rpc_gfxdrawunlock() {
+	rpcgfxlk.Unlock()
+}
+
+// Simple in-process snarf buffer for now.
+var snarfBuf []byte
+
+func rpc_getsnarf() []byte {
+	if len(snarfBuf) == 0 {
+		return nil
+	}
+	cp := make([]byte, len(snarfBuf))
+	copy(cp, snarfBuf)
+	return cp
+}
+
+func rpc_putsnarf(b []byte) {
+	if len(b) == 0 {
+		snarfBuf = nil
+		return
+	}
+	snarfBuf = make([]byte, len(b))
+	copy(snarfBuf, b)
 }
 
 // --- ClientImpl methods (called from devdraw.go) ---
@@ -179,43 +215,6 @@ func (impl *theImpl) rpc_flush(c *Client, r draw.Rectangle) {
 	impl.widget.ScheduleRedraw()
 }
 
-// rpc_shutdown is called when the last client exits.
-func rpc_shutdown() {
-	if wlDisplay != nil {
-		wlDisplay.Exit()
-	}
-}
-
-// rpc_gfxdrawlock / rpc_gfxdrawunlock wrap access to the real display.
-func rpc_gfxdrawlock() {
-	rpcgfxlk.Lock()
-}
-
-func rpc_gfxdrawunlock() {
-	rpcgfxlk.Unlock()
-}
-
-// Simple in-process snarf buffer for now.
-var snarfBuf []byte
-
-func rpc_getsnarf() []byte {
-	if len(snarfBuf) == 0 {
-		return nil
-	}
-	cp := make([]byte, len(snarfBuf))
-	copy(cp, snarfBuf)
-	return cp
-}
-
-func rpc_putsnarf(b []byte) {
-	if len(b) == 0 {
-		snarfBuf = nil
-		return
-	}
-	snarfBuf = make([]byte, len(b))
-	copy(snarfBuf, b)
-}
-
 // --- window.CloseHandler ---
 
 func (impl *theImpl) Close() {
@@ -223,11 +222,17 @@ func (impl *theImpl) Close() {
 	rpc_shutdown()
 }
 
-// --- window.WidgetHandler: Resize/Redraw are the only ones we care about. ---
+// --- window.WidgetHandler implementation ---
+// Signatures MUST EXACTLY match the WidgetHandler interface in window/window.go.
 
-// Resize is called when the widget allocation changes (e.g. compositor resize).
-// We (re)allocate the memdraw screen image to match.
-func (impl *theImpl) Resize(w *window.Widget, width, height, pwidth, pheight int32) {
+// Resize(Widget *Widget, width int32, height int32, pwidth int32, pheight int32)
+func (impl *theImpl) Resize(
+	w *window.Widget,
+	width int32,
+	height int32,
+	pwidth int32,
+	pheight int32,
+) {
 	if width <= 0 || height <= 0 {
 		return
 	}
@@ -260,8 +265,7 @@ func (impl *theImpl) Resize(w *window.Widget, width, height, pwidth, pheight int
 	}
 }
 
-// Redraw is called when Wayland wants us to paint the window contents.
-// We copy the memdraw backing image into the Wayland shm buffer.
+// Redraw(Widget *Widget)
 func (impl *theImpl) Redraw(w *window.Widget) {
 	impl.mu.Lock()
 	defer impl.mu.Unlock()
@@ -315,22 +319,36 @@ func (impl *theImpl) Redraw(w *window.Widget) {
 	}
 }
 
-// The rest of the WidgetHandler methods are input-related; we can leave them
-// as stubs for now since you asked for “just enough to display an image”.
+// Enter(Widget *Widget, Input *Input, x float32, y float32)
+func (impl *theImpl) Enter(
+	w *window.Widget,
+	in *window.Input,
+	x float32,
+	y float32,
+) {
+}
 
-func (impl *theImpl) Enter(w *window.Widget, in *window.Input, x, y float32) {}
+// Leave(Widget *Widget, Input *Input)
+func (impl *theImpl) Leave(
+	w *window.Widget,
+	in *window.Input,
+) {
+}
 
-func (impl *theImpl) Leave(w *window.Widget, in *window.Input) {}
-
+// Motion(Widget *Widget, Input *Input, time uint32, x float32, y float32) int
 func (impl *theImpl) Motion(
 	w *window.Widget,
 	in *window.Input,
 	time uint32,
-	x, y float32,
+	x float32,
+	y float32,
 ) int {
 	return 0
 }
 
+// Button(Widget *Widget, Input *Input, time uint32, button uint32,
+//
+//	state wl.PointerButtonState, data WidgetHandler)
 func (impl *theImpl) Button(
 	w *window.Widget,
 	in *window.Input,
@@ -341,49 +359,69 @@ func (impl *theImpl) Button(
 ) {
 }
 
+// TouchUp(Widget *Widget, Input *Input, serial uint32, time uint32, id int32)
 func (impl *theImpl) TouchUp(
 	w *window.Widget,
 	in *window.Input,
-	serial, time uint32,
+	serial uint32,
+	time uint32,
 	id int32,
 ) {
 }
 
+// TouchDown(Widget *Widget, Input *Input,
+//
+//	serial uint32, time uint32, id int32,
+//	x float32, y float32)
 func (impl *theImpl) TouchDown(
 	w *window.Widget,
 	in *window.Input,
-	serial, time uint32,
+	serial uint32,
+	time uint32,
 	id int32,
-	x, y float32,
+	x float32,
+	y float32,
 ) {
 }
 
+// TouchMotion(Widget *Widget, Input *Input, time uint32, id int32, x float32, y float32)
 func (impl *theImpl) TouchMotion(
 	w *window.Widget,
 	in *window.Input,
 	time uint32,
 	id int32,
-	x, y float32,
+	x float32,
+	y float32,
 ) {
 }
 
-func (impl *theImpl) TouchFrame(w *window.Widget, in *window.Input) {}
+// TouchFrame(Widget *Widget, Input *Input)
+func (impl *theImpl) TouchFrame(
+	w *window.Widget,
+	in *window.Input,
+) {
+}
 
+// TouchCancel(Widget *Widget, Input *Input, width int32, height int32)
 func (impl *theImpl) TouchCancel(
 	w *window.Widget,
 	in *window.Input,
-	width, height int32,
+	width int32,
+	height int32,
 ) {
 }
 
+// Axis(Widget *Widget, Input *Input, time uint32, axis uint32, value float32)
 func (impl *theImpl) Axis(
 	w *window.Widget,
 	in *window.Input,
-	time, axis uint32,
+	time uint32,
+	axis uint32,
 	value float32,
 ) {
 }
 
+// AxisSource(Widget *Widget, Input *Input, source uint32)
 func (impl *theImpl) AxisSource(
 	w *window.Widget,
 	in *window.Input,
@@ -391,13 +429,16 @@ func (impl *theImpl) AxisSource(
 ) {
 }
 
+// AxisStop(Widget *Widget, Input *Input, time uint32, axis uint32)
 func (impl *theImpl) AxisStop(
 	w *window.Widget,
 	in *window.Input,
-	time, axis uint32,
+	time uint32,
+	axis uint32,
 ) {
 }
 
+// AxisDiscrete(Widget *Widget, Input *Input, axis uint32, discrete int32)
 func (impl *theImpl) AxisDiscrete(
 	w *window.Widget,
 	in *window.Input,
@@ -406,4 +447,9 @@ func (impl *theImpl) AxisDiscrete(
 ) {
 }
 
-func (impl *theImpl) PointerFrame(w *window.Widget, in *window.Input) {}
+// PointerFrame(Widget *Widget, Input *Input)
+func (impl *theImpl) PointerFrame(
+	w *window.Widget,
+	in *window.Input,
+) {
+}
