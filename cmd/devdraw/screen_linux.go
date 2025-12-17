@@ -25,6 +25,9 @@ var rpcgfxlk sync.Mutex
 // Simple in-process snarf buffer for now.
 var snarfBuf []byte
 
+func (*theImpl) rpc_bouncemouse(client *Client, m draw.Mouse) {
+}
+
 // theImpl is the per-client backend state and implements ClientImpl
 // plus window.WidgetHandler and window.CloseHandler.
 type theImpl struct {
@@ -127,7 +130,7 @@ func rpc_attach(c *Client, label, winsize string) (*memdraw.Image, error) {
 	}
 	win.SetBufferType(window.BufferTypeShm)
 	win.SetCloseHandler(impl) // implement Close() below
-
+	win.SetKeyboardHandler(impl)
 	// Attach our handler as the main widget for the window content.
 	w := win.AddWidget(impl) // *theImpl must satisfy window.WidgetHandler
 	impl.widget = w
@@ -472,4 +475,127 @@ func (impl *theImpl) PointerFrame(
 	w *window.Widget,
 	in *window.Input,
 ) {
+}
+
+// KeyboardHandler implementation.
+// This is called from the Wayland input layer when a key changes state.
+func (impl *theImpl) Key(
+	win *window.Window,
+	in *window.Input,
+	time uint32,
+	key uint32,
+	sym uint32,
+	state wl.KeyboardKeyState,
+	data window.WidgetHandler,
+) {
+	if impl == nil || impl.client == nil {
+		return
+	}
+	// Only act on key press, like the shiny backend.
+	if state != wl.KeyboardKeyStatePressed {
+		return
+	}
+
+	// First try to turn the keysym into a Unicode rune.
+	ch := in.GetRune(&sym, 0)
+
+	if ch == 0 {
+		// Non-printable; map special keys (F-keys, arrows, etc.).
+		ch = symToRune(sym)
+	} else if ch == '\r' {
+		// Normalise CR to NL for Plan 9.
+		ch = '\n'
+	}
+
+	if ch == 0 {
+		return
+	}
+
+	gfx_keystroke(impl.client, ch)
+}
+
+func (impl *theImpl) Focus(win *window.Window, in *window.Input) {
+	// We don't need to do anything special on focus gain/loss for devdraw.
+}
+
+// Subset of XKB/X11 keysyms we care about for special keys.
+const (
+	xkbSymBackSpace = 0xff08
+	xkbSymTab       = 0xff09
+	xkbSymReturn    = 0xff0d
+	xkbSymEscape    = 0xff1b
+	xkbSymDelete    = 0xffff
+
+	xkbSymHome     = 0xff50
+	xkbSymLeft     = 0xff51
+	xkbSymUp       = 0xff52
+	xkbSymRight    = 0xff53
+	xkbSymDown     = 0xff54
+	xkbSymPageUp   = 0xff55
+	xkbSymPageDown = 0xff56
+	xkbSymEnd      = 0xff57
+	xkbSymInsert   = 0xff63
+
+	xkbSymF1  = 0xffbe
+	xkbSymF12 = 0xffc9
+
+	xkbSymShiftL   = 0xffe1
+	xkbSymShiftR   = 0xffe2
+	xkbSymControlL = 0xffe3
+	xkbSymControlR = 0xffe4
+	xkbSymAltL     = 0xffe9
+	xkbSymAltR     = 0xffea
+)
+
+// Map non-Unicode XKB keysyms into the runes expected by devdraw
+// (draw.KeyFn, draw.KeyHome, draw.KeyLeft, draw.KeyAlt, etc.).
+func symToRune(sym uint32) rune {
+	switch sym {
+	case xkbSymReturn:
+		// Make sure Return is always newline.
+		return '\n'
+	case xkbSymBackSpace:
+		return '\b'
+	case xkbSymTab:
+		return '\t'
+	case xkbSymEscape:
+		return 0x1b
+
+	case xkbSymDelete:
+		return draw.KeyDelete
+	case xkbSymInsert:
+		return draw.KeyInsert
+	case xkbSymHome:
+		return draw.KeyHome
+	case xkbSymEnd:
+		return draw.KeyEnd
+	case xkbSymPageUp:
+		return draw.KeyPageUp
+	case xkbSymPageDown:
+		return draw.KeyPageDown
+
+	case xkbSymLeft:
+		return draw.KeyLeft
+	case xkbSymRight:
+		return draw.KeyRight
+	case xkbSymUp:
+		return draw.KeyUp
+	case xkbSymDown:
+		return draw.KeyDown
+
+	case xkbSymShiftL, xkbSymShiftR:
+		return draw.KeyShift
+	case xkbSymControlL, xkbSymControlR:
+		return draw.KeyCtl
+	case xkbSymAltL, xkbSymAltR:
+		return draw.KeyAlt
+	}
+
+	// F1–F12 map to draw.KeyFn | n, like screen.go does.
+	if sym >= xkbSymF1 && sym <= xkbSymF12 {
+		n := int(sym - xkbSymF1 + 1)
+		return draw.KeyFn | rune(n)
+	}
+
+	return 0
 }
