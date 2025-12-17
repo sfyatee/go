@@ -59,11 +59,12 @@ func gfx_main() {
 	}
 	wlDisplay = d
 
-	// Start the Wayland event loop.
-	go window.DisplayRun(d)
-
-	// Now start serving clients.
+	// Start the RPC server (serveproc(client0) in srv.go).
 	gfx_started()
+
+	// Run the Wayland event loop on this goroutine and DO NOT return
+	// until the display is told to Exit() (e.g. via window close).
+	window.DisplayRun(d)
 }
 
 // rpc_attach is called for the first initdraw of a client.
