@@ -15,8 +15,7 @@ import (
 
 var ScreenPix = draw.XRGB32
 
-// gfx_main is called once from srv.go main().
-// It must not return until devdraw is really done.
+// gfx_main is called once from srv.go main(). It must not return until devdraw is really done.
 func gfx_main() {
 	d, err := window.DisplayCreate(os.Args)
 	if err != nil {
@@ -41,7 +40,7 @@ var snarfBuf []byte
 // Ensure we satisfy ClientImpl; WidgetHandler/CloseHandler are enforced by usage.
 var _ ClientImpl = (*theImpl)(nil)
 
-// We create a memdraw screen image and a Wayland window/widget wrapping it.
+// Create a memdraw screen image and a Wayland window/widget wrapping it.
 func rpc_attach(c *Client, label, winsize string) (*memdraw.Image, error) {
 	if wlDisplay == nil {
 		return nil, fmt.Errorf("wayland: display not initialised")
