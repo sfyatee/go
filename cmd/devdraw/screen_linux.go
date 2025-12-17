@@ -8,9 +8,9 @@ import (
 
 	"9fans.net/go/draw"
 	"9fans.net/go/draw/memdraw"
-
 	"github.com/neurlang/wayland/window"
 	"github.com/neurlang/wayland/wl"
+	xkb "github.com/neurlang/wayland/xkbcommon"
 )
 
 // Plan 9-style screen pixel format: matches other backends.
@@ -518,83 +518,48 @@ func (impl *theImpl) Focus(win *window.Window, in *window.Input) {
 	// We don't need to do anything special on focus gain/loss for devdraw.
 }
 
-// Subset of XKB/X11 keysyms we care about for special keys.
-const (
-	xkbSymBackSpace = 0xff08
-	xkbSymTab       = 0xff09
-	xkbSymReturn    = 0xff0d
-	xkbSymEscape    = 0xff1b
-	xkbSymDelete    = 0xffff
-
-	xkbSymHome     = 0xff50
-	xkbSymLeft     = 0xff51
-	xkbSymUp       = 0xff52
-	xkbSymRight    = 0xff53
-	xkbSymDown     = 0xff54
-	xkbSymPageUp   = 0xff55
-	xkbSymPageDown = 0xff56
-	xkbSymEnd      = 0xff57
-	xkbSymInsert   = 0xff63
-
-	xkbSymF1  = 0xffbe
-	xkbSymF12 = 0xffc9
-
-	xkbSymShiftL   = 0xffe1
-	xkbSymShiftR   = 0xffe2
-	xkbSymControlL = 0xffe3
-	xkbSymControlR = 0xffe4
-	xkbSymAltL     = 0xffe9
-	xkbSymAltR     = 0xffea
-)
-
 // Map non-Unicode XKB keysyms into the runes expected by devdraw
 // (draw.KeyFn, draw.KeyHome, draw.KeyLeft, draw.KeyAlt, etc.).
 func symToRune(sym uint32) rune {
 	switch sym {
-	case xkbSymReturn:
+	case xkb.KeyReturn:
 		// Make sure Return is always newline.
 		return '\n'
-	case xkbSymBackSpace:
+	case xkb.KeyBackspace:
 		return '\b'
-	case xkbSymTab:
+	case xkb.KeyTab:
 		return '\t'
-	case xkbSymEscape:
+	case xkb.KeyEscape:
 		return 0x1b
 
-	case xkbSymDelete:
+	case xkb.KeyDelete:
 		return draw.KeyDelete
-	case xkbSymInsert:
+	case xkb.KeyInsert:
 		return draw.KeyInsert
-	case xkbSymHome:
+	case xkb.KeyHome:
 		return draw.KeyHome
-	case xkbSymEnd:
+	case xkb.KeyEnd:
 		return draw.KeyEnd
-	case xkbSymPageUp:
+	case xkb.KeyPageUp:
 		return draw.KeyPageUp
-	case xkbSymPageDown:
+	case xkb.KeyPageDown:
 		return draw.KeyPageDown
 
-	case xkbSymLeft:
+	case xkb.KeyLeft:
 		return draw.KeyLeft
-	case xkbSymRight:
+	case xkb.KeyRight:
 		return draw.KeyRight
-	case xkbSymUp:
+	case xkb.KeyUp:
 		return draw.KeyUp
-	case xkbSymDown:
+	case xkb.KeyDown:
 		return draw.KeyDown
 
-	case xkbSymShiftL, xkbSymShiftR:
+	case xkb.KeyShiftL, xkb.KeyShiftR:
 		return draw.KeyShift
-	case xkbSymControlL, xkbSymControlR:
+	case xkb.KeyControlL, xkb.KeyControlR:
 		return draw.KeyCtl
-	case xkbSymAltL, xkbSymAltR:
+	case xkb.KeyAltL, xkb.KeyAltR:
 		return draw.KeyAlt
-	}
-
-	// F1–F12 map to draw.KeyFn | n, like screen.go does.
-	if sym >= xkbSymF1 && sym <= xkbSymF12 {
-		n := int(sym - xkbSymF1 + 1)
-		return draw.KeyFn | rune(n)
 	}
 
 	return 0
