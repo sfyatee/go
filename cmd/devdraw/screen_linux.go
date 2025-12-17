@@ -15,41 +15,6 @@ import (
 
 var ScreenPix = draw.XRGB32
 
-// Single Wayland display for this devdraw instance.
-var wlDisplay *window.Display
-
-// Simple in-process snarf buffer for now.
-var snarfBuf []byte
-
-func (*theImpl) rpc_bouncemouse(client *Client, m draw.Mouse) {
-}
-
-// theImpl is the per-client backend state and implements ClientImpl
-// plus window.WidgetHandler and window.CloseHandler.
-type theImpl struct {
-	client *Client
-	win    *window.Window
-	widget *window.Widget
-	i      *memdraw.Image
-	rgba   *image.RGBA
-	mu     sync.Mutex
-}
-
-// Ensure we satisfy ClientImpl; WidgetHandler/CloseHandler are enforced by usage.
-var _ ClientImpl = (*theImpl)(nil)
-
-// memimageToRGBA builds an image.RGBA view over the memdraw pixels.
-func memimageToRGBA(i *memdraw.Image) *image.RGBA {
-	if i == nil {
-		return nil
-	}
-	return &image.RGBA{
-		Pix:    i.BytesAt(i.R.Min),
-		Stride: int(i.Width) * 4,
-		Rect:   i.R,
-	}
-}
-
 // gfx_main is called once from srv.go main().
 // It must not return until devdraw is really done.
 func gfx_main() {
@@ -66,6 +31,15 @@ func gfx_main() {
 	// Run the Wayland event loop here and block until Exit().
 	window.DisplayRun(d)
 }
+
+// Single Wayland display for this devdraw instance.
+var wlDisplay *window.Display
+
+// Simple in-process snarf buffer for now.
+var snarfBuf []byte
+
+// Ensure we satisfy ClientImpl; WidgetHandler/CloseHandler are enforced by usage.
+var _ ClientImpl = (*theImpl)(nil)
 
 // rpc_attach is called when the client does initdraw.
 // We create a memdraw screen image and a Wayland window/widget wrapping it.
@@ -132,6 +106,36 @@ func rpc_attach(c *Client, label, winsize string) (*memdraw.Image, error) {
 	return img, nil
 }
 
+// memimageToRGBA builds an image.RGBA view over the memdraw pixels.
+func memimageToRGBA(i *memdraw.Image) *image.RGBA {
+	if i == nil {
+		return nil
+	}
+	return &image.RGBA{
+		Pix:    i.BytesAt(i.R.Min),
+		Stride: int(i.Width) * 4,
+		Rect:   i.R,
+	}
+}
+
+// theImpl is the per-client backend state and implements ClientImpl
+// plus window.WidgetHandler and window.CloseHandler.
+type theImpl struct {
+	client *Client
+	win    *window.Window
+	widget *window.Widget
+	i      *memdraw.Image
+	rgba   *image.RGBA
+	mu     sync.Mutex
+}
+
+func (impl *theImpl) rpc_setlabel(c *Client, label string) {
+	if impl == nil || impl.win == nil {
+		return
+	}
+	impl.win.SetTitle(label)
+}
+
 // rpc_shutdown is called when the last client exits.
 func rpc_shutdown() {
 	if wlDisplay != nil {
@@ -139,10 +143,16 @@ func rpc_shutdown() {
 	}
 }
 
-// -----------------------------------------------------------------------------
-// ClientImpl hooks used from devdraw.go
-// -----------------------------------------------------------------------------
+// Called when some portion of the memdraw screen changed.
+// We just schedule a redraw; Wayland will coalesce and call Redraw.
+func (impl *theImpl) rpc_flush(c *Client, r draw.Rectangle) {
+	if impl == nil || impl.widget == nil {
+		return
+	}
+	impl.widget.ScheduleRedraw()
+}
 
+// ClientImpl hooks used from devdraw.go
 // Called when the draw library has recreated the root memdraw image but the
 // window size is unchanged. For the Wayland shm path, we just update our view.
 func (impl *theImpl) rpc_resizeimg(c *Client) {
@@ -160,6 +170,20 @@ func (impl *theImpl) rpc_resizeimg(c *Client) {
 	}
 }
 
+var rpcgfxlk sync.Mutex
+
+func rpc_gfxdrawlock() {
+	rpcgfxlk.Lock()
+}
+
+func rpc_gfxdrawunlock() {
+	rpcgfxlk.Unlock()
+}
+
+func (impl *theImpl) rpc_topwin(c *Client) {
+	// Could be used to raise the window if the API ever exposes it.
+}
+
 // Called when the client requests a resize (e.g. drawresizewindow()).
 func (impl *theImpl) rpc_resizewindow(c *Client, r draw.Rectangle) {
 	if impl == nil || impl.widget == nil {
@@ -173,43 +197,12 @@ func (impl *theImpl) rpc_resizewindow(c *Client, r draw.Rectangle) {
 }
 
 // Cursor, label, mouse, topwin: mostly stubs for now.
-
-func (impl *theImpl) rpc_setcursor(c *Client, cur *draw.Cursor, cur2 *draw.Cursor2) {
-	// TODO: hook to window cursors if you want Plan 9's fat cursors.
-}
-
-func (impl *theImpl) rpc_setlabel(c *Client, label string) {
-	if impl == nil || impl.win == nil {
-		return
-	}
-	impl.win.SetTitle(label)
-}
-
 func (impl *theImpl) rpc_setmouse(c *Client, p draw.Point) {
 	// Wayland doesn’t let us warp the pointer, so ignore for now.
 }
 
-func (impl *theImpl) rpc_topwin(c *Client) {
-	// Could be used to raise the window if the API ever exposes it.
-}
-
-// Called when some portion of the memdraw screen changed.
-// We just schedule a redraw; Wayland will coalesce and call Redraw.
-func (impl *theImpl) rpc_flush(c *Client, r draw.Rectangle) {
-	if impl == nil || impl.widget == nil {
-		return
-	}
-	impl.widget.ScheduleRedraw()
-}
-
-var rpcgfxlk sync.Mutex
-
-func rpc_gfxdrawlock() {
-	rpcgfxlk.Lock()
-}
-
-func rpc_gfxdrawunlock() {
-	rpcgfxlk.Unlock()
+func (impl *theImpl) rpc_setcursor(c *Client, cur *draw.Cursor, cur2 *draw.Cursor2) {
+	// TODO: hook to window cursors if you want Plan 9's fat cursors.
 }
 
 // Snarfing: for now, just keep a local buffer.
@@ -229,6 +222,9 @@ func rpc_putsnarf(b []byte) {
 	}
 	snarfBuf = make([]byte, len(b))
 	copy(snarfBuf, b)
+}
+
+func (*theImpl) rpc_bouncemouse(client *Client, m draw.Mouse) {
 }
 
 // -----------------------------------------------------------------------------
