@@ -217,7 +217,6 @@ func wlMain() {
 	d, err := window.DisplayCreate(os.Args)
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 	theWindow = d
 	gfx_started()
