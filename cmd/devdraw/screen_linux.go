@@ -15,7 +15,7 @@ import (
 
 var ScreenPix = draw.XRGB32
 
-// gfx_main is called once from srv.go main(). It must not return until devdraw is really done.
+// called once from srv.go main(). must not return until devdraw is done.
 func gfx_main() {
 	d, err := window.DisplayCreate(os.Args)
 	if err != nil {
@@ -24,10 +24,10 @@ func gfx_main() {
 	}
 	wlDisplay = d
 
-	// Start the RPC server (serveproc(client0) in srv.go).
+	// Start RPC server (serveproc(client0) in srv.go).
 	gfx_started()
 
-	// Run the Wayland event loop here and block until Exit().
+	// Run Wayland event loop here and block until Exit().
 	window.DisplayRun(d)
 }
 
@@ -330,8 +330,7 @@ func (impl *theImpl) Redraw(w *window.Widget) {
 	}
 }
 
-// Input-related methods: stubs for now, since you said we can skip
-// keyboard/mouse for the moment. Signatures must match exactly.
+// Input-related method stubs keyboard/mouse for the moment. Signatures must match exactly.
 func (impl *theImpl) PointerFrame(w *window.Widget, in *window.Input) {
 }
 
