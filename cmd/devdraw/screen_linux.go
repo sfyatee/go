@@ -134,7 +134,7 @@ func (impl *theImpl) rpc_setlabel(c *Client, label string) {
 	impl.win.SetTitle(label)
 }
 
-// rpc_shutdown is called when the last client exits.
+// called when the last client exits.
 func rpc_shutdown() {
 	if wlDisplay != nil {
 		wlDisplay.Exit()
@@ -182,7 +182,7 @@ func (impl *theImpl) rpc_topwin(c *Client) {
 	// Could be used to raise the window if the API ever exposes it.
 }
 
-// Called when the client requests a resize (e.g. drawresizewindow()).
+// client requests a resize (e.g. drawresizewindow()).
 func (impl *theImpl) rpc_resizewindow(c *Client, r draw.Rectangle) {
 	if impl == nil || impl.widget == nil {
 		return
@@ -275,8 +275,7 @@ func (impl *theImpl) Resize(w *window.Widget, width int32, height int32, pwidth 
 	}
 }
 
-// Redraw is called when Wayland wants the window contents.
-// We copy from the memdraw backing image into the current shm buffer.
+// Redraw is when Wayland wants the window contents. copy from the memdraw backing image into the current shm buffer.
 func (impl *theImpl) Redraw(w *window.Widget) {
 	impl.mu.Lock()
 	defer impl.mu.Unlock()
