@@ -452,8 +452,8 @@ func (impl *theImpl) Axis(w *window.Widget, in *window.Input, time uint32, axis 
 
 }
 
-func (impl *theImpl) AxisSource(w *window.Widget, in *window.Input, source uint32)           {}
-func (impl *theImpl) AxisStop(w *window.Widget, in *window.Input, time uint32, axis uint32)  {}
+func (impl *theImpl) AxisSource(_ *window.Widget, _ *window.Input, _ uint32)                 {}
+func (impl *theImpl) AxisStop(_ *window.Widget, _ *window.Input, _ uint32, _ uint32)         {}
 func (impl *theImpl) AxisDiscrete(_ *window.Widget, _ *window.Input, _ uint32, _ int32)      {}
 func (impl *theImpl) TouchUp(_ *window.Widget, _ *window.Input, _ uint32, _ uint32, _ int32) {}
 func (impl *theImpl) TouchDown(_ *window.Widget, _ *window.Input, _ uint32, _ uint32, _ int32, _ float32, _ float32) {
