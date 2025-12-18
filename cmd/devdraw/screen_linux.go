@@ -15,24 +15,11 @@ import (
 
 var ScreenPix = draw.XRGB32
 
-// once from srv.go main(). don't return until devdraw is done.
 func gfx_main() {
-	d, err := window.DisplayCreate(os.Args)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "wayland: DisplayCreate failed: %v\n", err)
-		os.Exit(1)
-	}
-	wlDisplay = d
-
-	// Start RPC server (serveproc(client0) in srv.go).
-	gfx_started()
-
-	// Run Wayland event loop and block until Exit().
-	window.DisplayRun(d)
+	wlMain()
 }
 
-// Single Wayland display for this devdraw instance.
-var wlDisplay *window.Display
+var theWindow *window.Display
 
 // Simple in-process snarf buffer for now.
 var snarfBuf []byte
@@ -42,7 +29,7 @@ var _ ClientImpl = (*theImpl)(nil)
 
 // Create a memdraw screen image and a Wayland window/widget wrapping it.
 func rpc_attach(c *Client, label, winsize string) (*memdraw.Image, error) {
-	if wlDisplay == nil {
+	if theWindow == nil {
 		return nil, fmt.Errorf("wayland: display not initialised")
 	}
 	// If we already have a window for this client, just return its screen.
@@ -79,7 +66,7 @@ func rpc_attach(c *Client, label, winsize string) (*memdraw.Image, error) {
 	}
 
 	// Create a Wayland toplevel window.
-	win := window.Create(wlDisplay)
+	win := window.Create(theWindow)
 	if win == nil {
 		return nil, fmt.Errorf("wayland: failed to create Wayland window")
 	}
@@ -136,8 +123,8 @@ func (impl *theImpl) rpc_setlabel(c *Client, label string) {
 
 // called when the last client exits.
 func rpc_shutdown() {
-	if wlDisplay != nil {
-		wlDisplay.Exit()
+	if theWindow != nil {
+		theWindow.Exit()
 	}
 }
 
@@ -223,6 +210,17 @@ func rpc_putsnarf(b []byte) {
 }
 
 func (*theImpl) rpc_bouncemouse(client *Client, m draw.Mouse) {
+}
+
+func wlMain() {
+	d, err := window.DisplayCreate(os.Args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "wayland: DisplayCreate failed: %v\n", err)
+		os.Exit(1)
+	}
+	theWindow = d
+	gfx_started()
+	window.DisplayRun(d)
 }
 
 // window.CloseHandler
@@ -454,14 +452,13 @@ func (impl *theImpl) Axis(w *window.Widget, in *window.Input, time uint32, axis 
 
 }
 
-func (impl *theImpl) AxisSource(w *window.Widget, in *window.Input, source uint32)                 {}
-func (impl *theImpl) AxisStop(w *window.Widget, in *window.Input, time uint32, axis uint32)        {}
-func (impl *theImpl) AxisDiscrete(w *window.Widget, in *window.Input, axis uint32, discrete int32) {}
-func (impl *theImpl) TouchUp(w *window.Widget, in *window.Input, serial uint32, time uint32, id int32) {
+func (impl *theImpl) AxisSource(w *window.Widget, in *window.Input, source uint32)           {}
+func (impl *theImpl) AxisStop(w *window.Widget, in *window.Input, time uint32, axis uint32)  {}
+func (impl *theImpl) AxisDiscrete(_ *window.Widget, _ *window.Input, _ uint32, _ int32)      {}
+func (impl *theImpl) TouchUp(_ *window.Widget, _ *window.Input, _ uint32, _ uint32, _ int32) {}
+func (impl *theImpl) TouchDown(_ *window.Widget, _ *window.Input, _ uint32, _ uint32, _ int32, _ float32, _ float32) {
 }
-func (impl *theImpl) TouchDown(w *window.Widget, in *window.Input, serial uint32, time uint32, id int32, x float32, y float32) {
+func (impl *theImpl) TouchMotion(_ *window.Widget, _ *window.Input, _ uint32, _ int32, _ float32, _ float32) {
 }
-func (impl *theImpl) TouchMotion(w *window.Widget, in *window.Input, time uint32, id int32, x float32, y float32) {
-}
-func (impl *theImpl) TouchFrame(w *window.Widget, in *window.Input)           {}
-func (impl *theImpl) TouchCancel(w *window.Widget, width int32, height int32) {} // NOTE: TouchCancel in the window.WidgetHandler interface has *no* Input param.
+func (impl *theImpl) TouchFrame(_ *window.Widget, _ *window.Input)   {}
+func (impl *theImpl) TouchCancel(_ *window.Widget, _ int32, _ int32) {}
