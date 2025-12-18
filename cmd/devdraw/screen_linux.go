@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image"
+	"log"
 	"os"
 	"sync"
 
@@ -215,7 +216,7 @@ func (*theImpl) rpc_bouncemouse(client *Client, m draw.Mouse) {
 func wlMain() {
 	d, err := window.DisplayCreate(os.Args)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "wayland: DisplayCreate failed: %v\n", err)
+		log.Fatal(err)
 		os.Exit(1)
 	}
 	theWindow = d
