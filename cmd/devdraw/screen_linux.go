@@ -434,7 +434,6 @@ func (impl *theImpl) Button(w *window.Widget, _ *window.Input, time uint32, butt
 	}
 
 	impl.mouse.Msec = time
-
 	gfx_mousetrack(impl.client, impl.mouse.X, impl.mouse.Y, impl.mouse.Buttons, impl.mouse.Msec)
 }
 
