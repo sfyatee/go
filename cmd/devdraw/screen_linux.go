@@ -15,7 +15,7 @@ import (
 
 var ScreenPix = draw.XRGB32
 
-// called once from srv.go main(). must not return until devdraw is done.
+// once from srv.go main(). don't return until devdraw is done.
 func gfx_main() {
 	d, err := window.DisplayCreate(os.Args)
 	if err != nil {
@@ -27,7 +27,7 @@ func gfx_main() {
 	// Start RPC server (serveproc(client0) in srv.go).
 	gfx_started()
 
-	// Run Wayland event loop here and block until Exit().
+	// Run Wayland event loop and block until Exit().
 	window.DisplayRun(d)
 }
 
