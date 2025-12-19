@@ -374,6 +374,8 @@ func (impl *theImpl) Key(win *window.Window, in *window.Input, time uint32, key 
 		ch = draw.KeyHome
 	case xkb.KeyInsert:
 		ch = draw.KeyInsert
+	case xkb.KeyF1, xkb.KeyF2, xkb.KeyF3, xkb.KeyF4, xkb.KeyF5, xkb.KeyF6, xkb.KeyF7, xkb.KeyF8, xkb.KeyF9, xkb.KeyF10, xkb.KeyF11, xkb.KeyF12:
+		ch = draw.KeyFn | rune(int(sym-xkb.KeyF1+1))
 	}
 	if ch == 0 {
 		ch = in.GetRune(&sym, 0)
