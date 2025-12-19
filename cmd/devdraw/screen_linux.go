@@ -333,6 +333,13 @@ func (impl *theImpl) Focus(win *window.Window, in *window.Input) {
 	// We don't need to do anything special on focus gain/loss for devdraw.
 }
 
+const (
+	Aunpress = iota
+	Apress
+	Aenter1
+	Aenter2
+)
+
 func (impl *theImpl) Key(win *window.Window, in *window.Input, time uint32, key uint32, sym uint32, state wl.KeyboardKeyState, data window.WidgetHandler) {
 	if state != wl.KeyboardKeyStatePressed {
 		return
