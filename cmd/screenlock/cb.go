@@ -3,15 +3,14 @@ package main
 import (
 	"fmt"
 
+	"github.com/neurlang/wayland/window"
 	"github.com/neurlang/wayland/wl"
 	client "github.com/neurlang/wayland/wlclient"
 	ext "github.com/tuxx/wayland-ext-session-lock-go"
 )
 
 type Client struct {
-	display     *wl.Display
-	registry    *wl.Registry
-	compositor  *wl.Compositor
+	window      window.Display
 	lockManager *ext.SessionLockManager
 	lock        *ext.SessionLock
 	surfaces    map[*wl.Output]*ext.SessionLockSurface
@@ -57,9 +56,7 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) HandleRegistryGlobal(ev wl.RegistryGlobalEvent) {
-	if ev.Interface == "wl_compositor" {
-		c.compositor = client.RegistryBindCompositorInterface(c.registry, ev.Name, 4)
-	} else if ev.Interface == "ext_session_lock_manager_v1" && ev.Version >= 1 {
+	if ev.Interface == "ext_session_lock_manager_v1" && ev.Version >= 1 {
 		c.lockManager = ext.BindSessionLockManager(c.registry, ev.Name, 1)
 	} else if ev.Interface == "wl_output" {
 		output := client.RegistryBindOutputInterface(c.registry, ev.Name, 3)
@@ -78,30 +75,6 @@ func (c *Client) HandleRegistryGlobalRemove(ev wl.RegistryGlobalRemoveEvent) {
 
 		delete(c.outputs, ev.Name)
 	}
-}
-
-func (c *Client) HandleSessionLockLocked(ev ext.SessionLockLockedEvent) {
-	fmt.Println("Session is now locked!")
-	c.locked = true
-}
-
-func (c *Client) HandleSessionLockFinished(ev ext.SessionLockFinishedEvent) {
-	fmt.Println("Lock manager finished the session lock")
-	if c.locked {
-		c.lock.UnlockAndDestroy()
-	} else {
-		c.lock.Destroy()
-	}
-	close(c.done)
-}
-
-func (s *Surface) HandleSessionLockSurfaceConfigure(ev ext.SessionLockSurfaceConfigureEvent) {
-	fmt.Printf("Configure: serial=%d, width=%d, height=%d\n", ev.Serial, ev.Width, ev.Height)
-	s.serial = ev.Serial
-	s.width = ev.Width
-	s.height = ev.Height
-	s.lock.AckConfigure(ev.Serial)
-	createSolidColorBuffer(s.surface, s.width, s.height, 64, 0, 0) // Dark red
 }
 
 // Helper function to create a solid color buffer for a surface

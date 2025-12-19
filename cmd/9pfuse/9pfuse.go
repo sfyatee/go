@@ -18,7 +18,6 @@ import (
 	"github.com/jacobsa/fuse/fuseutil"
 )
 
-// usage matches the man page closely.
 func usage() {
 	fmt.Fprintln(os.Stderr, "usage: 9pfuse [-D] [-A attrtimeout] [-a aname] addr mtpt")
 	os.Exit(2)

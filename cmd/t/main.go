@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-	"image/jpeg"
+	"image/png"
 	"os"
 	"os/signal"
 	"syscall"
@@ -344,7 +344,7 @@ func loadJPEGToRGBA(path string) (*image.RGBA, int, int, error) {
 	}
 	defer f.Close()
 
-	src, err := jpeg.Decode(f)
+	src, err := png.Decode(f)
 	if err != nil {
 		return nil, 0, 0, err
 	}
