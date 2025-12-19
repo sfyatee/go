@@ -191,7 +191,7 @@ func (impl *theImpl) rpc_setcursor(c *Client, cur *draw.Cursor, cur2 *draw.Curso
 	// TODO: hook to window cursors if you want Plan 9's fat cursors.
 }
 
-// Snarfing: for now, just keep a local buffer.
+// Snarfing: for now, just keep a local buffer
 func rpc_getsnarf() []byte {
 	if len(snarfBuf) == 0 {
 		return nil
@@ -210,8 +210,7 @@ func rpc_putsnarf(b []byte) {
 	copy(snarfBuf, b)
 }
 
-func (*theImpl) rpc_bouncemouse(client *Client, m draw.Mouse) {
-}
+func (*theImpl) rpc_bouncemouse(c *Client, m draw.Mouse) {}
 
 func wlMain() {
 	d, err := window.DisplayCreate(os.Args)
@@ -223,9 +222,8 @@ func wlMain() {
 	window.DisplayRun(d)
 }
 
-// window.CloseHandler
 func (impl *theImpl) Close() {
-	// Window close -> exit the display loop.
+	// window.CloseHandler: exit the display loop.
 	rpc_shutdown()
 }
 
@@ -335,64 +333,50 @@ func (impl *theImpl) Focus(win *window.Window, in *window.Input) {
 	// We don't need to do anything special on focus gain/loss for devdraw.
 }
 
-// This is called from the Wayland input layer when a key changes state.
 func (impl *theImpl) Key(win *window.Window, in *window.Input, time uint32, key uint32, sym uint32, state wl.KeyboardKeyState, data window.WidgetHandler) {
-	if impl == nil || impl.client == nil {
-		return
-	}
-	// Only act on key press, like the shiny backend / C devdraw.
 	if state != wl.KeyboardKeyStatePressed {
 		return
 	}
 
-	// First try to turn the keysym into a Unicode rune using xkb.
-	ch := in.GetRune(&sym, 0)
-	if ch == 0 {
-		switch sym {
-		case xkb.KeyReturn:
-			ch = '\n'
-		case xkb.KeyTab:
-			ch = '\t'
-		case xkb.KeyBackspace:
-			ch = '\b'
-		case xkb.KeyEscape:
-			ch = 0x1b
-		case xkb.KeyUp:
-			ch = draw.KeyUp
-		case xkb.KeyDown:
-			ch = draw.KeyDown
-		case xkb.KeyLeft:
-			ch = draw.KeyLeft
-		case xkb.KeyRight:
-			ch = draw.KeyRight
-		case xkb.KeyPageUp:
-			ch = draw.KeyPageUp
-		case xkb.KeyPageDown:
-			ch = draw.KeyPageDown
-		case xkb.KeyControlL, xkb.KeyControlR:
-			ch = draw.KeyCtl
-		case xkb.KeyAltL, xkb.KeyAltR:
-			ch = draw.KeyAlt
-		case xkb.KeyShiftL, xkb.KeyShiftR:
-			ch = draw.KeyShift
-		case xkb.KeyDelete:
-			ch = draw.KeyDelete
-		case xkb.KeyEnd:
-			ch = draw.KeyEnd
-		case xkb.KeyHome:
-			ch = draw.KeyHome
-		case xkb.KeyInsert:
-			ch = draw.KeyInsert
-		default:
-			ch = 0
-		}
-	} else if ch == '\r' {
-		// Normalise CR to NL for Plan 9.
+	var ch rune
+	switch sym {
+	case xkb.KeyReturn:
 		ch = '\n'
+	case xkb.KeyTab:
+		ch = '\t'
+	case xkb.KeyBackspace:
+		ch = '\b'
+	case xkb.KeyEscape:
+		ch = 0x1b
+	case xkb.KeyUp:
+		ch = draw.KeyUp
+	case xkb.KeyDown:
+		ch = draw.KeyDown
+	case xkb.KeyLeft:
+		ch = draw.KeyLeft
+	case xkb.KeyRight:
+		ch = draw.KeyRight
+	case xkb.KeyPageUp:
+		ch = draw.KeyPageUp
+	case xkb.KeyPageDown:
+		ch = draw.KeyPageDown
+	case xkb.KeyControlL, xkb.KeyControlR:
+		ch = draw.KeyCtl
+	case xkb.KeyAltL, xkb.KeyAltR:
+		ch = draw.KeyAlt
+	case xkb.KeyShiftL, xkb.KeyShiftR:
+		ch = draw.KeyShift
+	case xkb.KeyDelete:
+		ch = draw.KeyDelete
+	case xkb.KeyEnd:
+		ch = draw.KeyEnd
+	case xkb.KeyHome:
+		ch = draw.KeyHome
+	case xkb.KeyInsert:
+		ch = draw.KeyInsert
 	}
-
 	if ch == 0 {
-		return
+		ch = in.GetRune(&sym, 0)
 	}
 
 	gfx_keystroke(impl.client, ch)
