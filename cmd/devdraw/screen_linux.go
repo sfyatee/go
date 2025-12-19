@@ -341,53 +341,63 @@ const (
 )
 
 func (impl *theImpl) Key(win *window.Window, in *window.Input, time uint32, key uint32, sym uint32, state wl.KeyboardKeyState, data window.WidgetHandler) {
+	if impl == nil || impl.client == nil {
+		return
+	}
+	// Only act on key press, like the shiny backend / C devdraw.
 	if state != wl.KeyboardKeyStatePressed {
 		return
 	}
 
-	var ch rune
-	switch sym {
-	case xkb.KeyReturn:
-		ch = '\n'
-	case xkb.KeyTab:
-		ch = '\t'
-	case xkb.KeyBackspace:
-		ch = '\b'
-	case xkb.KeyEscape:
-		ch = 0x1b
-	case xkb.KeyUp:
-		ch = draw.KeyUp
-	case xkb.KeyDown:
-		ch = draw.KeyDown
-	case xkb.KeyLeft:
-		ch = draw.KeyLeft
-	case xkb.KeyRight:
-		ch = draw.KeyRight
-	case xkb.KeyPageUp:
-		ch = draw.KeyPageUp
-	case xkb.KeyPageDown:
-		ch = draw.KeyPageDown
-	case xkb.KeyControlL, xkb.KeyControlR:
-		ch = draw.KeyCtl
-	case xkb.KeyAltL, xkb.KeyAltR:
-		ch = draw.KeyAlt
-	case xkb.KeyShiftL, xkb.KeyShiftR:
-		ch = draw.KeyShift
-	case xkb.KeyDelete:
-		ch = draw.KeyDelete
-	case xkb.KeyEnd:
-		ch = draw.KeyEnd
-	case xkb.KeyHome:
-		ch = draw.KeyHome
-	case xkb.KeyInsert:
-		ch = draw.KeyInsert
-	case xkb.KeyF1, xkb.KeyF2, xkb.KeyF3, xkb.KeyF4, xkb.KeyF5, xkb.KeyF6, xkb.KeyF7, xkb.KeyF8, xkb.KeyF9, xkb.KeyF10, xkb.KeyF11, xkb.KeyF12:
-		ch = draw.KeyFn | rune(int(sym-xkb.KeyF1+1))
-	}
+	// First try to turn the keysym into a Unicode rune using xkb.
+	ch := in.GetRune(&sym, 0)
 	if ch == 0 {
-		ch = in.GetRune(&sym, 0)
+		switch sym {
+		case xkb.KeyReturn:
+			ch = '\n'
+		case xkb.KeyTab:
+			ch = '\t'
+		case xkb.KeyBackspace:
+			ch = '\b'
+		case xkb.KeyEscape:
+			ch = 0x1b
+		case xkb.KeyUp:
+			ch = draw.KeyUp
+		case xkb.KeyDown:
+			ch = draw.KeyDown
+		case xkb.KeyLeft:
+			ch = draw.KeyLeft
+		case xkb.KeyRight:
+			ch = draw.KeyRight
+		case xkb.KeyPageUp:
+			ch = draw.KeyPageUp
+		case xkb.KeyPageDown:
+			ch = draw.KeyPageDown
+		case xkb.KeyControlL, xkb.KeyControlR:
+			ch = draw.KeyCtl
+		case xkb.KeyAltL, xkb.KeyAltR:
+			ch = draw.KeyAlt
+		case xkb.KeyShiftL, xkb.KeyShiftR:
+			ch = draw.KeyShift
+		case xkb.KeyDelete:
+			ch = draw.KeyDelete
+		case xkb.KeyEnd:
+			ch = draw.KeyEnd
+		case xkb.KeyHome:
+			ch = draw.KeyHome
+		case xkb.KeyInsert:
+			ch = draw.KeyInsert
+		default:
+			ch = 0
+		}
+	} else if ch == '\r' {
+		// Normalise CR to NL for Plan 9.
+		ch = '\n'
 	}
 
+	if ch == 0 {
+		return
+	}
 	gfx_keystroke(impl.client, ch)
 }
 
