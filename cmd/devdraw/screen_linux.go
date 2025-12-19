@@ -397,7 +397,6 @@ const (
 
 func (impl *theImpl) Button(w *window.Widget, _ *window.Input, time uint32, button uint32, state wl.PointerButtonState, _ window.WidgetHandler) {
 	var m int
-
 	switch button {
 	case BTN_LEFT:
 		m = P9Mouse1
