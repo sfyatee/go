@@ -22,7 +22,7 @@ import (
 //go:embed bunny.bit
 var pic []byte
 
-func convertToRGBA(path string) (*image.RGBA, int, int, error) {
+func convertToRGBA() (*image.RGBA, int, int, error) {
 	src, _ := inferno.Decode(bytes.NewReader(pic))
 	b := src.Bounds()
 	rgba := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
@@ -70,8 +70,8 @@ type LockSurfaceHandler struct {
 	st     *LockSurfaceState
 }
 
-func NewLockClient(imgPath string) (*LockClient, error) {
-	img, iw, ih, err := convertToRGBA(imgPath)
+func NewLockClient() (*LockClient, error) {
+	img, iw, ih, err := convertToRGBA()
 	if err != nil {
 		return nil, err
 	}
@@ -349,7 +349,7 @@ func (c *LockClient) destroyShm(st *LockSurfaceState) {
 }
 
 func main() {
-	client, err := NewLockClient("dummy.jpg")
+	client, err := NewLockClient()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "jpeg:", err)
 		os.Exit(1)
