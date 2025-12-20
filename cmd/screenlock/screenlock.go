@@ -64,6 +64,11 @@ type LockSurfaceState struct {
 	fd     *os.File
 }
 
+type LockSurfaceHandler struct {
+	client *LockClient
+	st     *LockSurfaceState
+}
+
 func NewLockClient(imgPath string) (*LockClient, error) {
 	img, iw, ih, err := convertToRGBA(imgPath)
 	if err != nil {
@@ -176,8 +181,7 @@ func (c *LockClient) createLockSurface(output *wl.Output) error {
 	return nil
 }
 
-// ---- ext_session_lock handlers ----
-
+// ext_session_lock handlers
 func (c *LockClient) HandleSessionLockLocked(ev ext.SessionLockLockedEvent) {
 	c.lockedReceived = true
 	fmt.Println("Session is now locked.")
@@ -195,11 +199,6 @@ func (c *LockClient) HandleSessionLockFinished(ev ext.SessionLockFinishedEvent) 
 	close(c.done)
 }
 
-type LockSurfaceHandler struct {
-	client *LockClient
-	st     *LockSurfaceState
-}
-
 func (h *LockSurfaceHandler) HandleSessionLockSurfaceConfigure(ev ext.SessionLockSurfaceConfigureEvent) {
 	// Must ack before committing content; protocol even defines an error for committing before first ack.
 	h.st.serial = ev.Serial
@@ -214,8 +213,7 @@ func (h *LockSurfaceHandler) HandleSessionLockSurfaceConfigure(ev ext.SessionLoc
 	}
 }
 
-// ---- shm drawing ----
-
+// shm drawing
 func (c *LockClient) drawCenteredJPG(st *LockSurfaceState) error {
 	w := int(st.width)
 	h := int(st.height)
@@ -377,7 +375,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// event loop (like the example)
+	// event loop
 	for {
 		select {
 		case <-client.done:
