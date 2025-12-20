@@ -15,6 +15,7 @@ import (
 	sys "github.com/neurlang/wayland/os"
 	"github.com/neurlang/wayland/wl"
 	"github.com/neurlang/wayland/wlclient"
+	// xkb "github.com/neurlang/wayland/xkbcommon"
 	ext "github.com/tuxx/wayland-ext-session-lock-go"
 )
 
